@@ -5,6 +5,13 @@ import { useAuth } from "../context/AuthContext";
 const Communication = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
+
+  // Estado para anuncios persistentes
+  const [announcements, setAnnouncements] = useState(() => {
+    const saved = localStorage.getItem("school_announcements");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [formData, setFormData] = useState({
     asunto: "",
     mensaje: "",
@@ -26,6 +33,16 @@ const Communication = () => {
     });
   };
 
+  // Función para guardar anuncios en localStorage
+  const saveAnnouncement = (announcement) => {
+    const newAnnouncements = [announcement, ...announcements];
+    setAnnouncements(newAnnouncements);
+    localStorage.setItem(
+      "school_announcements",
+      JSON.stringify(newAnnouncements)
+    );
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSend) return;
@@ -38,7 +55,17 @@ const Communication = () => {
       enviados: calcularDestinatarios(formData),
       remitente: user.nombre,
     };
+
     setMessages([newMessage, ...messages]);
+
+    // Si es de alta urgencia, guardar automáticamente como anuncio
+    if (formData.urgencia === "alta") {
+      saveAnnouncement({
+        ...newMessage,
+        id: Date.now(), // ID único para anuncios
+        tipo: "anuncio",
+      });
+    }
 
     setFormData({
       asunto: "",
@@ -78,6 +105,61 @@ const Communication = () => {
     }
   };
 
+  // Función para eliminar anuncio
+  const handleDeleteAnnouncement = (announcementId) => {
+    if (!window.confirm("¿Estás seguro de eliminar este anuncio?")) return;
+
+    const updatedAnnouncements = announcements.filter(
+      (a) => a.id !== announcementId
+    );
+    setAnnouncements(updatedAnnouncements);
+    localStorage.setItem(
+      "school_announcements",
+      JSON.stringify(updatedAnnouncements)
+    );
+    alert("Anuncio eliminado exitosamente");
+  };
+
+  // Función para eliminar mensaje del historial
+  const handleDeleteMessage = (messageId) => {
+    if (!window.confirm("¿Estás seguro de eliminar este comunicado?")) return;
+
+    const updatedMessages = messages.filter((m) => m.id !== messageId);
+    setMessages(updatedMessages);
+    alert("Comunicado eliminado exitosamente");
+  };
+
+  // Función para convertir mensaje en anuncio
+  const handlePromoteToAnnouncement = (message) => {
+    const newAnnouncement = {
+      ...message,
+      id: Date.now(), // Nuevo ID único
+      tipo: "anuncio",
+    };
+
+    saveAnnouncement(newAnnouncement);
+    alert("Mensaje convertido en anuncio permanente");
+  };
+
+  // Función para reenviar mensaje
+  const handleResendMessage = (message) => {
+    setFormData({
+      asunto: message.asunto,
+      mensaje: message.mensaje,
+      destinatarios: message.destinatarios,
+      grado: message.grado,
+      seccion: message.seccion,
+      urgencia: message.urgencia,
+      programarEnvio: false,
+      fechaEnvio: "",
+    });
+
+    // Scroll al formulario
+    document
+      .querySelector(".communication-form")
+      .scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="communication-container">
       <h1>Comunicación Institucional</h1>
@@ -87,7 +169,143 @@ const Communication = () => {
         <div className="communication-form">
           <h2>Enviar Comunicado</h2>
           <form onSubmit={handleSubmit}>
-            {/* ... (todo el formulario de comunicación permanece igual) ... */}
+            <div className="form-row">
+              <div className="form-group">
+                <label>Asunto:</label>
+                <input
+                  type="text"
+                  name="asunto"
+                  value={formData.asunto}
+                  onChange={handleInputChange}
+                  placeholder="Asunto del comunicado..."
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Nivel de Urgencia:</label>
+                <select
+                  name="urgencia"
+                  value={formData.urgencia}
+                  onChange={handleInputChange}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta (Se convierte en anuncio)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Destinatarios:</label>
+              <div className="destinatarios-options">
+                <label>
+                  <input
+                    type="radio"
+                    name="destinatarios"
+                    value="todos"
+                    checked={formData.destinatarios === "todos"}
+                    onChange={handleInputChange}
+                  />
+                  Todos los estudiantes
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="destinatarios"
+                    value="grado"
+                    checked={formData.destinatarios === "grado"}
+                    onChange={handleInputChange}
+                  />
+                  Por grado
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="destinatarios"
+                    value="seccion"
+                    checked={formData.destinatarios === "seccion"}
+                    onChange={handleInputChange}
+                  />
+                  Por sección
+                </label>
+              </div>
+            </div>
+
+            {formData.destinatarios === "grado" && (
+              <div className="form-group">
+                <label>Grado:</label>
+                <select
+                  name="grado"
+                  value={formData.grado}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Seleccionar grado</option>
+                  <option value="1ro">1ro Primaria</option>
+                  <option value="2do">2do Primaria</option>
+                  <option value="3ro">3ro Primaria</option>
+                  <option value="4to">4to Primaria</option>
+                  <option value="5to">5to Primaria</option>
+                  <option value="6to">6to Primaria</option>
+                </select>
+              </div>
+            )}
+
+            {formData.destinatarios === "seccion" && (
+              <div className="form-group">
+                <label>Sección:</label>
+                <select
+                  name="seccion"
+                  value={formData.seccion}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Seleccionar sección</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Mensaje:</label>
+              <textarea
+                name="mensaje"
+                value={formData.mensaje}
+                onChange={handleInputChange}
+                rows="6"
+                placeholder="Escribe el mensaje aquí..."
+                required
+              ></textarea>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="programarEnvio"
+                  checked={formData.programarEnvio}
+                  onChange={handleInputChange}
+                />
+                Programar envío para fecha futura
+              </label>
+            </div>
+
+            {formData.programarEnvio && (
+              <div className="form-group">
+                <label>Fecha y hora de envío:</label>
+                <input
+                  type="datetime-local"
+                  name="fechaEnvio"
+                  value={formData.fechaEnvio}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary">
+              {formData.programarEnvio ? "Programar Envío" : "Enviar Ahora"}
+            </button>
           </form>
         </div>
       ) : (
@@ -97,67 +315,152 @@ const Communication = () => {
         </div>
       )}
 
-      <div className="communication-history">
-        <h2>
-          {user?.role === "estudiante"
-            ? "Comunicados Recibidos"
-            : "Historial de Comunicados"}{" "}
-          ({messages.length})
-        </h2>
-        {messages.length === 0 ? (
-          <p className="no-data">
+      <div className="communication-sections">
+        {/* Sección de Anuncios Activos (Persistentes) */}
+        <div className="announcements-section">
+          <h2>📢 Anuncios Activos ({announcements.length})</h2>
+          {announcements.length === 0 ? (
+            <p className="no-data">
+              {user?.role === "estudiante"
+                ? "No hay anuncios activos"
+                : "No hay anuncios publicados"}
+            </p>
+          ) : (
+            <div className="messages-list">
+              {announcements.map((announcement) => (
+                <div
+                  key={announcement.id}
+                  className={`message-card ${getUrgenciaClass(
+                    announcement.urgencia
+                  )} announcement-card`}
+                >
+                  <div className="message-header">
+                    <h3>{announcement.asunto}</h3>
+                    <div className="message-meta">
+                      <span
+                        className={`urgency-badge ${getUrgenciaClass(
+                          announcement.urgencia
+                        )}`}
+                      >
+                        {announcement.urgencia}
+                      </span>
+                      <span className="announcement-badge">Anuncio</span>
+                    </div>
+                  </div>
+                  <div className="message-details">
+                    <p>
+                      <strong>De:</strong>{" "}
+                      {announcement.remitente || "Administración"}
+                    </p>
+                    <p>
+                      <strong>Para:</strong> {announcement.enviados}
+                    </p>
+                    <p>
+                      <strong>Publicado:</strong> {announcement.fechaCreacion}
+                    </p>
+                  </div>
+                  <div className="message-content">
+                    <p>{announcement.mensaje}</p>
+                  </div>
+                  {canSend && (
+                    <div className="message-actions">
+                      <button
+                        className="btn-delete"
+                        onClick={() =>
+                          handleDeleteAnnouncement(announcement.id)
+                        }
+                      >
+                        Eliminar Anuncio
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sección de Historial de Comunicados (Temporal) */}
+        <div className="communication-history">
+          <h2>
             {user?.role === "estudiante"
-              ? "No has recibido comunicados"
-              : "No hay comunicados enviados"}
-          </p>
-        ) : (
-          <div className="messages-list">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`message-card ${getUrgenciaClass(message.urgencia)}`}
-              >
-                <div className="message-header">
-                  <h3>{message.asunto}</h3>
-                  <div className="message-meta">
-                    <span
-                      className={`urgency-badge ${getUrgenciaClass(
-                        message.urgencia
-                      )}`}
-                    >
-                      {message.urgencia}
-                    </span>
-                    <span
-                      className={`status-badge ${message.estado.toLowerCase()}`}
-                    >
-                      {message.estado}
-                    </span>
+              ? "💬 Comunicados Recientes"
+              : "📋 Historial de Comunicados"}{" "}
+            ({messages.length})
+          </h2>
+          {messages.length === 0 ? (
+            <p className="no-data">
+              {user?.role === "estudiante"
+                ? "No has recibido comunicados recientes"
+                : "No hay comunicados enviados"}
+            </p>
+          ) : (
+            <div className="messages-list">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`message-card ${getUrgenciaClass(
+                    message.urgencia
+                  )}`}
+                >
+                  <div className="message-header">
+                    <h3>{message.asunto}</h3>
+                    <div className="message-meta">
+                      <span
+                        className={`urgency-badge ${getUrgenciaClass(
+                          message.urgencia
+                        )}`}
+                      >
+                        {message.urgencia}
+                      </span>
+                      <span
+                        className={`status-badge ${message.estado.toLowerCase()}`}
+                      >
+                        {message.estado}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="message-details">
-                  <p>
-                    <strong>De:</strong> {message.remitente || "Sistema"}
-                  </p>
-                  <p>
-                    <strong>Para:</strong> {message.enviados}
-                  </p>
-                  <p>
-                    <strong>Fecha:</strong> {message.fechaCreacion}
-                  </p>
-                </div>
-                <div className="message-content">
-                  <p>{message.mensaje}</p>
-                </div>
-                {canSend && (
-                  <div className="message-actions">
-                    <button className="btn-edit">Reenviar</button>
-                    <button className="btn-delete">Eliminar</button>
+                  <div className="message-details">
+                    <p>
+                      <strong>De:</strong> {message.remitente || "Sistema"}
+                    </p>
+                    <p>
+                      <strong>Para:</strong> {message.enviados}
+                    </p>
+                    <p>
+                      <strong>Fecha:</strong> {message.fechaCreacion}
+                    </p>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  <div className="message-content">
+                    <p>{message.mensaje}</p>
+                  </div>
+                  {canSend && (
+                    <div className="message-actions">
+                      <button
+                        className="btn-edit"
+                        onClick={() => handleResendMessage(message)}
+                      >
+                        Reenviar
+                      </button>
+                      <button
+                        className="btn-delete"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        Eliminar
+                      </button>
+                      <button
+                        className="btn-promote"
+                        onClick={() => handlePromoteToAnnouncement(message)}
+                      >
+                        Convertir en Anuncio
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

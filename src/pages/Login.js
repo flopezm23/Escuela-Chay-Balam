@@ -95,7 +95,7 @@ const Login = () => {
         </form>
 
         <div className="demo-section">
-          <h3>Usuario de Prueba (API Real)</h3>
+          <h3>Usuario de Prueba acceso administrador</h3>
           <div className="demo-users">
             {demoUsers.map((user, index) => (
               <button

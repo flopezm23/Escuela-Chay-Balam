@@ -17,6 +17,7 @@ import Tasks from "./pages/Tasks";
 import Grades from "./pages/Grades";
 import Communication from "./pages/Communication";
 import Information from "./pages/Information";
+import UserManagement from "./pages/UserManagement";
 import "./App.css";
 
 // Componente para redirigir según el rol
@@ -102,6 +103,15 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Information />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/user-management"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <UserManagement />
               </ProtectedRoute>
             }
           />

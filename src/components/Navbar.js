@@ -30,21 +30,18 @@ const Navbar = () => {
             <Link to="/students">Estudiantes</Link>
           </li>
         )}
-
         {/* Solo Admin puede gestionar cursos */}
         {user?.role === "admin" && (
           <li>
             <Link to="/courses">Cursos</Link>
           </li>
         )}
-
         {/* Solo Docente puede gestionar tareas */}
         {(user?.role === "admin" || user?.role === "docente") && (
           <li>
             <Link to="/tasks">Tareas</Link>
           </li>
         )}
-
         {/* Admin y Docente gestionan calificaciones, Estudiante las ve */}
         {(user?.role === "admin" ||
           user?.role === "docente" ||
@@ -53,11 +50,16 @@ const Navbar = () => {
             <Link to="/grades">Calificaciones</Link>
           </li>
         )}
-
         {/* Solo Admin y Docente pueden enviar comunicados */}
         {(user?.role === "admin" || user?.role === "docente") && (
           <li>
             <Link to="/communication">Comunicación</Link>
+          </li>
+        )}
+        {/* Solo Admin puede gestionar usuarios */}
+        {user?.role === "admin" && (
+          <li>
+            <Link to="/user-management">Gestión de Usuarios</Link>
           </li>
         )}
       </ul>

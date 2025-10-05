@@ -11,7 +11,10 @@ const Information = () => {
       </div>
 
       <div className="information-image">
-        <img src="/LogoEscuela.jpg" alt="Logo Chay B'alam" />
+        <img
+          src={`${process.env.PUBLIC_URL}/LogoEscuela.jpg`}
+          alt="Logo Chay B'alam"
+        />
       </div>
 
       <div className="info-sections">
