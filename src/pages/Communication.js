@@ -205,7 +205,7 @@ const Communication = () => {
                 </select>
               </div>
             </div>
-
+            {/*
             <div className="form-group">
               <label>Destinatarios:</label>
               <div className="destinatarios-options">
@@ -277,7 +277,7 @@ const Communication = () => {
                 </select>
               </div>
             )}
-
+*/}
             <div className="form-group">
               <label>Mensaje:</label>
               <textarea

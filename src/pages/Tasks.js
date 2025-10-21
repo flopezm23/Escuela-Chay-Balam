@@ -14,13 +14,13 @@ const Tasks = () => {
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [formData, setFormData] = useState({
-    Titulo: "",
-    Descripcion: "",
     CursoID: "",
     GradoID: "",
     SeccionID: "",
+    Titulo: "",
+    Descripcion: "",
     FechaEntrega: "",
-    PunteoTarea: "", // Nuevo campo
+    PunteoTarea: "",
   });
 
   const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5; // Profesor, Admin o Coordinador
@@ -36,31 +36,52 @@ const Tasks = () => {
   const loadInitialData = async () => {
     try {
       // Cargar cursos
-      const coursesResponse = await callApi(() => courseService.getCourses());
-      if (coursesResponse && coursesResponse.success) {
-        setCourses(coursesResponse.data || []);
+      const coursesResponse = await callApi(() => courseService.getCourses({}));
+      if (
+        coursesResponse &&
+        coursesResponse.success &&
+        Array.isArray(coursesResponse.data)
+      ) {
+        setCourses(coursesResponse.data);
       } else if (coursesResponse && Array.isArray(coursesResponse)) {
         setCourses(coursesResponse);
+      } else {
+        console.log("Formato inesperado de cursos:", coursesResponse);
+        setCourses([]);
       }
 
       // Cargar grados
       const gradesResponse = await callApi(() =>
-        gradeSectionService.getGrades()
+        gradeSectionService.getGrades({})
       );
-      if (gradesResponse && gradesResponse.success) {
-        setGrades(gradesResponse.data || []);
+      if (
+        gradesResponse &&
+        gradesResponse.success &&
+        Array.isArray(gradesResponse.data)
+      ) {
+        setGrades(gradesResponse.data);
       } else if (gradesResponse && Array.isArray(gradesResponse)) {
         setGrades(gradesResponse);
+      } else {
+        console.log("Formato inesperado de grados:", gradesResponse);
+        setGrades([]);
       }
 
       // Cargar secciones
       const sectionsResponse = await callApi(() =>
-        gradeSectionService.getSections()
+        gradeSectionService.getSections({})
       );
-      if (sectionsResponse && sectionsResponse.success) {
-        setSections(sectionsResponse.data || []);
+      if (
+        sectionsResponse &&
+        sectionsResponse.success &&
+        Array.isArray(sectionsResponse.data)
+      ) {
+        setSections(sectionsResponse.data);
       } else if (sectionsResponse && Array.isArray(sectionsResponse)) {
         setSections(sectionsResponse);
+      } else {
+        console.log("Formato inesperado de secciones:", sectionsResponse);
+        setSections([]);
       }
     } catch (err) {
       console.error("Error cargando datos iniciales:", err);
@@ -69,13 +90,14 @@ const Tasks = () => {
 
   const loadTasks = async () => {
     try {
-      const response = await callApi(() => taskService.getTasks());
+      const response = await callApi(() => taskService.getTasks({}));
       // Manejar diferentes formatos de respuesta
       if (response && response.success && Array.isArray(response.data)) {
         setTasks(response.data);
       } else if (response && Array.isArray(response)) {
         setTasks(response);
       } else {
+        console.log("Formato inesperado de tareas:", response);
         setTasks([]);
       }
     } catch (err) {
@@ -97,14 +119,18 @@ const Tasks = () => {
     if (!canEdit) return;
 
     try {
+      // Preparar datos según el formato exacto que espera el API
       const taskData = {
-        ...formData,
         CursoID: parseInt(formData.CursoID),
         GradoID: parseInt(formData.GradoID),
         SeccionID: parseInt(formData.SeccionID),
+        Titulo: formData.Titulo,
+        Descripcion: formData.Descripcion,
         FechaEntrega: new Date(formData.FechaEntrega).toISOString(),
-        PunteoTarea: parseFloat(formData.PunteoTarea), // Nuevo campo
+        PunteoTarea: parseFloat(formData.PunteoTarea) || 0,
       };
+
+      console.log("Enviando datos de tarea:", taskData);
 
       await callApi(
         () => taskService.createTask(taskData),
@@ -113,11 +139,11 @@ const Tasks = () => {
 
       // Limpiar formulario
       setFormData({
-        Titulo: "",
-        Descripcion: "",
         CursoID: "",
         GradoID: "",
         SeccionID: "",
+        Titulo: "",
+        Descripcion: "",
         FechaEntrega: "",
         PunteoTarea: "",
       });
@@ -130,20 +156,28 @@ const Tasks = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("es-GT", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("es-GT", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Fecha inválida";
+    }
   };
 
   return (
     <div className="tasks-container">
       <h1>{pageTitle}</h1>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       {/* Solo docentes pueden crear tareas */}
       {canEdit && (
@@ -152,7 +186,7 @@ const Tasks = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label>Título de la Tarea:</label>
+                <label>Título de la Tarea *</label>
                 <input
                   type="text"
                   name="Titulo"
@@ -167,7 +201,7 @@ const Tasks = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Curso:</label>
+                <label>Curso *</label>
                 <select
                   name="CursoID"
                   value={formData.CursoID}
@@ -178,14 +212,14 @@ const Tasks = () => {
                   <option value="">Seleccionar curso</option>
                   {courses.map((course) => (
                     <option key={course.cursoID} value={course.cursoID}>
-                      {course.nombre}
+                      {course.nombre} (ID: {course.cursoID})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Grado:</label>
+                <label>Grado *</label>
                 <select
                   name="GradoID"
                   value={formData.GradoID}
@@ -196,14 +230,14 @@ const Tasks = () => {
                   <option value="">Seleccionar grado</option>
                   {grades.map((grade) => (
                     <option key={grade.gradoID} value={grade.gradoID}>
-                      {grade.nombreGrado}
+                      {grade.nombreGrado} (ID: {grade.gradoID})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Sección:</label>
+                <label>Sección *</label>
                 <select
                   name="SeccionID"
                   value={formData.SeccionID}
@@ -214,7 +248,7 @@ const Tasks = () => {
                   <option value="">Seleccionar sección</option>
                   {sections.map((section) => (
                     <option key={section.seccionID} value={section.seccionID}>
-                      {section.nombreGrado} - {section.nombreSeccion}
+                      {section.nombreSeccion} (ID: {section.seccionID})
                     </option>
                   ))}
                 </select>
@@ -223,7 +257,7 @@ const Tasks = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Fecha de Entrega:</label>
+                <label>Fecha de Entrega *</label>
                 <input
                   type="datetime-local"
                   name="FechaEntrega"
@@ -234,7 +268,7 @@ const Tasks = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Punteo de la Tarea:</label>
+                <label>Punteo de la Tarea *</label>
                 <input
                   type="number"
                   name="PunteoTarea"
@@ -251,7 +285,7 @@ const Tasks = () => {
             </div>
 
             <div className="form-group">
-              <label>Descripción de la Tarea:</label>
+              <label>Descripción de la Tarea *</label>
               <textarea
                 name="Descripcion"
                 value={formData.Descripcion}
@@ -298,21 +332,21 @@ const Tasks = () => {
                 </div>
                 <div className="task-details">
                   <p>
-                    <strong>Código:</strong> {task.codigo}
+                    <strong>Código:</strong> {task.codigo || "N/A"}
                   </p>
                   <p>
-                    <strong>Curso:</strong> {task.nombreCurso}
+                    <strong>Curso:</strong> {task.nombreCurso || "N/A"}
                   </p>
                   <p>
                     <strong>Fecha de entrega:</strong>{" "}
                     {formatDate(task.fechaEntrega)}
                   </p>
                   <p>
-                    <strong>Grado/Sección:</strong> {task.nombreGrado} -{" "}
-                    {task.nombreSeccion}
+                    <strong>Grado/Sección:</strong> {task.nombreGrado || "N/A"}{" "}
+                    - {task.nombreSeccion || "N/A"}
                   </p>
                   <p>
-                    <strong>Punteo:</strong> {task.punteoTarea} puntos
+                    <strong>Punteo:</strong> {task.punteoTarea || "0"} puntos
                   </p>
                 </div>
                 <div className="task-description">
