@@ -9,14 +9,16 @@ const Students = () => {
   const { loading, error, callApi, clearError } = useApi();
   const [students, setStudents] = useState([]);
   const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    email: "",
-    contrasenia: "",
-    rol: "Estudiante",
+    PrimerNombre: "",
+    SegundoNombre: "",
+    PrimerApellido: "",
+    SegundoApellido: "",
+    Email: "",
+    Contrasena: "",
+    RolID: 3, // Por defecto: Estudiante
   });
 
-  const canEdit = user?.role === "admin";
+  const canEdit = user?.rolID === 1 || user?.rolID === 5; // Admin o Coordinador
 
   // Cargar estudiantes al montar el componente
   useEffect(() => {
@@ -25,13 +27,19 @@ const Students = () => {
 
   const loadStudents = async () => {
     try {
-      const response = await callApi(() => authService.getUsers());
-      if (response && Array.isArray(response)) {
-        // Filtrar solo estudiantes o mostrar todos según necesidad
+      // Filtrar solo estudiantes (RolID: 3)
+      const response = await callApi(() => authService.getUsers({ RolID: 3 }));
+
+      // Manejar diferentes formatos de respuesta
+      if (response && response.success && Array.isArray(response.data)) {
+        setStudents(response.data);
+      } else if (response && Array.isArray(response)) {
         setStudents(response);
+      } else {
+        setStudents([]);
       }
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error cargando estudiantes:", err);
     }
   };
 
@@ -39,7 +47,7 @@ const Students = () => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: name === "RolID" ? parseInt(value) : value,
     });
     clearError();
   };
@@ -49,24 +57,26 @@ const Students = () => {
     if (!canEdit) return;
 
     try {
-      const response = await callApi(
+      await callApi(
         () => authService.createUser(formData),
-        "Usuario creado exitosamente"
+        "Estudiante creado exitosamente"
       );
 
       // Limpiar formulario
       setFormData({
-        nombre: "",
-        apellido: "",
-        email: "",
-        contrasenia: "",
-        rol: "Estudiante",
+        PrimerNombre: "",
+        SegundoNombre: "",
+        PrimerApellido: "",
+        SegundoApellido: "",
+        Email: "",
+        Contrasena: "",
+        RolID: 3,
       });
 
       // Recargar la lista de estudiantes
       await loadStudents();
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error creando estudiante:", err);
     }
   };
 
@@ -81,11 +91,11 @@ const Students = () => {
 
     try {
       await callApi(
-        () => authService.resetPassword(studentEmail),
+        () => authService.resetPassword({ Email: studentEmail }),
         "Solicitud de reinicio de contraseña enviada"
       );
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error reiniciando contraseña:", err);
     }
   };
 
@@ -95,45 +105,70 @@ const Students = () => {
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Solo admin puede agregar estudiantes */}
+      {/* Solo admin/coordinador puede agregar estudiantes */}
       {canEdit && (
         <div className="students-form">
           <h2>Registrar Nuevo Estudiante</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label>Nombre:</label>
+                <label>Primer Nombre *</label>
                 <input
                   type="text"
-                  name="nombre"
-                  value={formData.nombre}
+                  name="PrimerNombre"
+                  value={formData.PrimerNombre}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
-                  placeholder="Nombre del estudiante"
+                  placeholder="Primer nombre"
                 />
               </div>
               <div className="form-group">
-                <label>Apellido:</label>
+                <label>Segundo Nombre</label>
                 <input
                   type="text"
-                  name="apellido"
-                  value={formData.apellido}
+                  name="SegundoNombre"
+                  value={formData.SegundoNombre}
                   onChange={handleInputChange}
-                  required
                   disabled={loading}
-                  placeholder="Apellido del estudiante"
+                  placeholder="Segundo nombre"
                 />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label>Correo Electrónico:</label>
+                <label>Primer Apellido *</label>
+                <input
+                  type="text"
+                  name="PrimerApellido"
+                  value={formData.PrimerApellido}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading}
+                  placeholder="Primer apellido"
+                />
+              </div>
+              <div className="form-group">
+                <label>Segundo Apellido</label>
+                <input
+                  type="text"
+                  name="SegundoApellido"
+                  value={formData.SegundoApellido}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  placeholder="Segundo apellido"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Correo Electrónico *</label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
+                  name="Email"
+                  value={formData.Email}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -141,11 +176,11 @@ const Students = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Contraseña Temporal:</label>
+                <label>Contraseña Temporal *</label>
                 <input
                   type="password"
-                  name="contrasenia"
-                  value={formData.contrasenia}
+                  name="Contrasena"
+                  value={formData.Contrasena}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -154,20 +189,11 @@ const Students = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Rol:</label>
-              <select
-                name="rol"
-                value={formData.rol}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-              >
-                <option value="Estudiante">Estudiante</option>
-                <option value="Docente">Docente</option>
-                <option value="Administrador">Administrador</option>
-              </select>
-            </div>
+            <input
+              type="hidden"
+              name="RolID"
+              value={3} // Siempre estudiante
+            />
 
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? "Creando..." : "Registrar Estudiante"}
@@ -187,19 +213,18 @@ const Students = () => {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Apellido</th>
+                  <th>Nombre Completo</th>
                   <th>Email</th>
                   {canEdit && <th>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
                 {students.map((student) => (
-                  <tr key={student.id}>
-                    <td>{student.id}</td>
-                    <td>{student.nombre}</td>
-                    <td>{student.apellido}</td>
+                  <tr key={student.usuarioId}>
+                    <td>
+                      {student.primerNombre} {student.segundoNombre || ""}{" "}
+                      {student.primerApellido} {student.segundoApellido || ""}
+                    </td>
                     <td>{student.email}</td>
                     {canEdit && (
                       <td>

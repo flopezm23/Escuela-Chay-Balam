@@ -5,8 +5,8 @@ export const courseService = {
   async createCourse(courseData) {
     try {
       const response = await api.post(API_ENDPOINTS.CREATE_COURSE, {
-        Nombre: courseData.nombre,
-        Descripcion: courseData.descripcion,
+        Nombre: courseData.Nombre,
+        Descripcion: courseData.Descripcion,
       });
       return response;
     } catch (error) {
@@ -18,9 +18,9 @@ export const courseService = {
   async updateCourse(courseData) {
     try {
       const response = await api.post(API_ENDPOINTS.UPDATE_COURSE, {
-        CursoID: courseData.cursoID,
-        Nombre: courseData.nombre,
-        Descripcion: courseData.descripcion,
+        CursoID: parseInt(courseData.CursoID),
+        Nombre: courseData.Nombre,
+        Descripcion: courseData.Descripcion,
       });
       return response;
     } catch (error) {
@@ -28,10 +28,10 @@ export const courseService = {
     }
   },
 
-  // Obtener cursos
-  async getCourses() {
+  // Obtener cursos con filtros
+  async getCourses(filters = {}) {
     try {
-      const response = await api.post(API_ENDPOINTS.GET_COURSES, {});
+      const response = await api.post(API_ENDPOINTS.GET_COURSES, filters);
       return response;
     } catch (error) {
       throw new Error(error.mensaje || "Error al obtener cursos");
@@ -42,7 +42,7 @@ export const courseService = {
   async deleteCourse(courseId) {
     try {
       const response = await api.post(API_ENDPOINTS.DELETE_COURSE, {
-        CursoID: courseId,
+        CursoID: parseInt(courseId),
       });
       return response;
     } catch (error) {

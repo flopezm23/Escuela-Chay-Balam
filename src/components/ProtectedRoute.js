@@ -9,8 +9,13 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  // Si se especifican roles permitidos, verificar que el usuario tenga uno de ellos
+  if (allowedRoles.length > 0 && user?.rolID) {
+    const hasAllowedRole = allowedRoles.includes(user.rolID);
+
+    if (!hasAllowedRole) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return children;

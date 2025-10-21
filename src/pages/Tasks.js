@@ -14,17 +14,18 @@ const Tasks = () => {
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [formData, setFormData] = useState({
-    titulo: "",
-    descripcion: "",
-    cursoID: "",
-    gradoID: "",
-    seccionID: "",
-    fechaEntrega: "",
+    Titulo: "",
+    Descripcion: "",
+    CursoID: "",
+    GradoID: "",
+    SeccionID: "",
+    FechaEntrega: "",
+    PunteoTarea: "", // Nuevo campo
   });
 
-  const canEdit = user?.role === "docente" || user?.role === "admin";
-  const pageTitle =
-    user?.role === "estudiante" ? "Mis Tareas" : "Gestión de Tareas";
+  const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5; // Profesor, Admin o Coordinador
+  const isStudent = user?.rolID === 3;
+  const pageTitle = isStudent ? "Mis Tareas" : "Gestión de Tareas";
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -36,7 +37,9 @@ const Tasks = () => {
     try {
       // Cargar cursos
       const coursesResponse = await callApi(() => courseService.getCourses());
-      if (coursesResponse && Array.isArray(coursesResponse)) {
+      if (coursesResponse && coursesResponse.success) {
+        setCourses(coursesResponse.data || []);
+      } else if (coursesResponse && Array.isArray(coursesResponse)) {
         setCourses(coursesResponse);
       }
 
@@ -44,7 +47,9 @@ const Tasks = () => {
       const gradesResponse = await callApi(() =>
         gradeSectionService.getGrades()
       );
-      if (gradesResponse && Array.isArray(gradesResponse)) {
+      if (gradesResponse && gradesResponse.success) {
+        setGrades(gradesResponse.data || []);
+      } else if (gradesResponse && Array.isArray(gradesResponse)) {
         setGrades(gradesResponse);
       }
 
@@ -52,22 +57,29 @@ const Tasks = () => {
       const sectionsResponse = await callApi(() =>
         gradeSectionService.getSections()
       );
-      if (sectionsResponse && Array.isArray(sectionsResponse)) {
+      if (sectionsResponse && sectionsResponse.success) {
+        setSections(sectionsResponse.data || []);
+      } else if (sectionsResponse && Array.isArray(sectionsResponse)) {
         setSections(sectionsResponse);
       }
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error cargando datos iniciales:", err);
     }
   };
 
   const loadTasks = async () => {
     try {
       const response = await callApi(() => taskService.getTasks());
-      if (response && Array.isArray(response)) {
+      // Manejar diferentes formatos de respuesta
+      if (response && response.success && Array.isArray(response.data)) {
+        setTasks(response.data);
+      } else if (response && Array.isArray(response)) {
         setTasks(response);
+      } else {
+        setTasks([]);
       }
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error cargando tareas:", err);
     }
   };
 
@@ -85,34 +97,35 @@ const Tasks = () => {
     if (!canEdit) return;
 
     try {
-      // Convertir fecha a formato ISO
       const taskData = {
         ...formData,
-        cursoID: parseInt(formData.cursoID),
-        gradoID: parseInt(formData.gradoID),
-        seccionID: parseInt(formData.seccionID),
-        fechaEntrega: new Date(formData.fechaEntrega).toISOString(),
+        CursoID: parseInt(formData.CursoID),
+        GradoID: parseInt(formData.GradoID),
+        SeccionID: parseInt(formData.SeccionID),
+        FechaEntrega: new Date(formData.FechaEntrega).toISOString(),
+        PunteoTarea: parseFloat(formData.PunteoTarea), // Nuevo campo
       };
 
-      const response = await callApi(
+      await callApi(
         () => taskService.createTask(taskData),
         "Tarea creada exitosamente"
       );
 
       // Limpiar formulario
       setFormData({
-        titulo: "",
-        descripcion: "",
-        cursoID: "",
-        gradoID: "",
-        seccionID: "",
-        fechaEntrega: "",
+        Titulo: "",
+        Descripcion: "",
+        CursoID: "",
+        GradoID: "",
+        SeccionID: "",
+        FechaEntrega: "",
+        PunteoTarea: "",
       });
 
       // Recargar la lista de tareas
       await loadTasks();
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error creando tarea:", err);
     }
   };
 
@@ -121,6 +134,8 @@ const Tasks = () => {
       year: "numeric",
       month: "long",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -140,8 +155,8 @@ const Tasks = () => {
                 <label>Título de la Tarea:</label>
                 <input
                   type="text"
-                  name="titulo"
-                  value={formData.titulo}
+                  name="Titulo"
+                  value={formData.Titulo}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -154,8 +169,8 @@ const Tasks = () => {
               <div className="form-group">
                 <label>Curso:</label>
                 <select
-                  name="cursoID"
-                  value={formData.cursoID}
+                  name="CursoID"
+                  value={formData.CursoID}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -172,8 +187,8 @@ const Tasks = () => {
               <div className="form-group">
                 <label>Grado:</label>
                 <select
-                  name="gradoID"
-                  value={formData.gradoID}
+                  name="GradoID"
+                  value={formData.GradoID}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -190,8 +205,8 @@ const Tasks = () => {
               <div className="form-group">
                 <label>Sección:</label>
                 <select
-                  name="seccionID"
-                  value={formData.seccionID}
+                  name="SeccionID"
+                  value={formData.SeccionID}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -211,11 +226,26 @@ const Tasks = () => {
                 <label>Fecha de Entrega:</label>
                 <input
                   type="datetime-local"
-                  name="fechaEntrega"
-                  value={formData.fechaEntrega}
+                  name="FechaEntrega"
+                  value={formData.FechaEntrega}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label>Punteo de la Tarea:</label>
+                <input
+                  type="number"
+                  name="PunteoTarea"
+                  value={formData.PunteoTarea}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  required
+                  disabled={loading}
+                  placeholder="Ej: 10.0"
                 />
               </div>
             </div>
@@ -223,8 +253,8 @@ const Tasks = () => {
             <div className="form-group">
               <label>Descripción de la Tarea:</label>
               <textarea
-                name="descripcion"
-                value={formData.descripcion}
+                name="Descripcion"
+                value={formData.Descripcion}
                 onChange={handleInputChange}
                 rows="4"
                 placeholder="Describe los detalles de la tarea..."
@@ -242,14 +272,13 @@ const Tasks = () => {
 
       <div className="tasks-list">
         <h2>
-          {user?.role === "estudiante" ? "Mis Tareas" : "Tareas Asignadas"} (
-          {tasks.length})
+          {isStudent ? "Mis Tareas" : "Tareas Asignadas"} ({tasks.length})
         </h2>
         {loading && tasks.length === 0 ? (
           <p className="loading-message">Cargando tareas...</p>
         ) : tasks.length === 0 ? (
           <p className="no-data">
-            {user?.role === "estudiante"
+            {isStudent
               ? "No tienes tareas asignadas"
               : "No hay tareas asignadas"}
           </p>
@@ -282,6 +311,9 @@ const Tasks = () => {
                     <strong>Grado/Sección:</strong> {task.nombreGrado} -{" "}
                     {task.nombreSeccion}
                   </p>
+                  <p>
+                    <strong>Punteo:</strong> {task.punteoTarea} puntos
+                  </p>
                 </div>
                 <div className="task-description">
                   <p>{task.descripcion}</p>
@@ -292,7 +324,7 @@ const Tasks = () => {
                     <button className="btn-delete">Eliminar</button>
                   </div>
                 )}
-                {user?.role === "estudiante" && (
+                {isStudent && (
                   <div className="task-actions">
                     <button className="btn-primary">Entregar Tarea</button>
                   </div>

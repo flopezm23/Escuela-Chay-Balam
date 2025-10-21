@@ -35,7 +35,15 @@ export const authService = {
   // Crear usuario
   async createUser(userData) {
     try {
-      const response = await api.post(API_ENDPOINTS.CREATE_USER, userData);
+      const response = await api.post(API_ENDPOINTS.CREATE_USER, {
+        PrimerNombre: userData.PrimerNombre,
+        SegundoNombre: userData.SegundoNombre,
+        PrimerApellido: userData.PrimerApellido,
+        SegundoApellido: userData.SegundoApellido,
+        Email: userData.Email,
+        RolID: userData.RolID,
+        Contrasena: userData.Contrasena,
+      });
       return response;
     } catch (error) {
       throw new Error(error.mensaje || "Error al crear usuario");
@@ -45,20 +53,39 @@ export const authService = {
   // Actualizar usuario
   async updateUser(userData) {
     try {
-      const response = await api.post(API_ENDPOINTS.UPDATE_USER, userData);
+      const response = await api.post(API_ENDPOINTS.UPDATE_USER, {
+        PrimerNombre: userData.PrimerNombre,
+        SegundoNombre: userData.SegundoNombre,
+        PrimerApellido: userData.PrimerApellido,
+        SegundoApellido: userData.SegundoApellido,
+        Email: userData.Email,
+      });
       return response;
     } catch (error) {
       throw new Error(error.mensaje || "Error al actualizar usuario");
     }
   },
 
-  // Obtener usuarios
-  async getUsers() {
+  // Obtener usuarios con filtros
+  async getUsers(filters = {}) {
     try {
-      const response = await api.post(API_ENDPOINTS.GET_USERS, {});
+      const response = await api.post(API_ENDPOINTS.GET_USERS, filters);
       return response;
     } catch (error) {
       throw new Error(error.mensaje || "Error al obtener usuarios");
+    }
+  },
+
+  // Enviar avisos masivos
+  async sendMassNotification(avisoData) {
+    try {
+      const response = await api.post(API_ENDPOINTS.SEND_NOTIFICATIONS, {
+        Asunto: avisoData.Asunto,
+        Mensaje: avisoData.Mensaje,
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.mensaje || "Error al enviar avisos");
     }
   },
 

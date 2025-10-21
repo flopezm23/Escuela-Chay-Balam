@@ -23,7 +23,8 @@ const Communication = () => {
     fechaEnvio: "",
   });
 
-  const canSend = user?.role === "admin" || user?.role === "docente";
+  const canSend = user?.rolID === 1 || user?.rolID === 2 || user?.rolID === 5; // Admin, Profesor o Coordinador
+  const isStudent = user?.rolID === 3;
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -53,7 +54,7 @@ const Communication = () => {
       fechaCreacion: new Date().toLocaleString(),
       estado: formData.programarEnvio ? "Programado" : "Enviado",
       enviados: calcularDestinatarios(formData),
-      remitente: user.nombre,
+      remitente: user.primerNombre + " " + user.primerApellido,
     };
 
     setMessages([newMessage, ...messages]);
@@ -164,10 +165,20 @@ const Communication = () => {
     <div className="communication-container">
       <h1>Comunicación Institucional</h1>
 
-      {/* Solo admin y docente pueden enviar mensajes */}
+      {/* Solo admin, profesor y coordinador pueden enviar mensajes */}
       {canSend ? (
         <div className="communication-form">
-          <h2>Enviar Comunicado</h2>
+          <h2>Enviar Comunicado Interno</h2>
+          <div className="form-info">
+            <p>
+              <strong>Nota:</strong> Estos comunicados se almacenan localmente
+              en el navegador.
+            </p>
+            <p>
+              Para enviar avisos masivos por correo a todos los usuarios, use la
+              opción <strong>"Avisos Masivos"</strong> en el menú.
+            </p>
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
@@ -321,7 +332,7 @@ const Communication = () => {
           <h2>📢 Anuncios Activos ({announcements.length})</h2>
           {announcements.length === 0 ? (
             <p className="no-data">
-              {user?.role === "estudiante"
+              {isStudent
                 ? "No hay anuncios activos"
                 : "No hay anuncios publicados"}
             </p>
@@ -383,14 +394,14 @@ const Communication = () => {
         {/* Sección de Historial de Comunicados (Temporal) */}
         <div className="communication-history">
           <h2>
-            {user?.role === "estudiante"
+            {isStudent
               ? "💬 Comunicados Recientes"
               : "📋 Historial de Comunicados"}{" "}
             ({messages.length})
           </h2>
           {messages.length === 0 ? (
             <p className="no-data">
-              {user?.role === "estudiante"
+              {isStudent
                 ? "No has recibido comunicados recientes"
                 : "No hay comunicados enviados"}
             </p>

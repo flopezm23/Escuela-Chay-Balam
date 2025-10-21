@@ -5,12 +5,13 @@ export const taskService = {
   async createTask(taskData) {
     try {
       const response = await api.post(API_ENDPOINTS.CREATE_TASK, {
-        CursoID: taskData.cursoID,
-        GradoID: taskData.gradoID,
-        SeccionID: taskData.seccionID,
-        Titulo: taskData.titulo,
-        Descripcion: taskData.descripcion,
-        FechaEntrega: taskData.fechaEntrega,
+        CursoID: parseInt(taskData.CursoID),
+        GradoID: parseInt(taskData.GradoID),
+        SeccionID: parseInt(taskData.SeccionID),
+        Titulo: taskData.Titulo,
+        Descripcion: taskData.Descripcion,
+        FechaEntrega: taskData.FechaEntrega,
+        PunteoTarea: parseFloat(taskData.PunteoTarea), // Nuevo campo
       });
       return response;
     } catch (error) {
@@ -31,7 +32,15 @@ export const taskService = {
   // Actualizar tarea
   async updateTask(taskData) {
     try {
-      const response = await api.post(API_ENDPOINTS.UPDATE_TASK, taskData);
+      const response = await api.post(API_ENDPOINTS.UPDATE_TASK, {
+        TareaID: parseInt(taskData.TareaID),
+        Titulo: taskData.Titulo,
+        Descripcion: taskData.Descripcion,
+        FechaEntrega: taskData.FechaEntrega,
+        PunteoTarea: taskData.PunteoTarea
+          ? parseFloat(taskData.PunteoTarea)
+          : undefined,
+      });
       return response;
     } catch (error) {
       throw new Error(error.mensaje || "Error al actualizar tarea");
@@ -42,7 +51,7 @@ export const taskService = {
   async deleteTask(taskId) {
     try {
       const response = await api.post(API_ENDPOINTS.DELETE_TASK, {
-        TareaID: taskId,
+        TareaID: parseInt(taskId),
       });
       return response;
     } catch (error) {

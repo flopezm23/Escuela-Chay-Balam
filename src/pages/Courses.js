@@ -9,11 +9,11 @@ const Courses = () => {
   const { loading, error, callApi, clearError } = useApi();
   const [courses, setCourses] = useState([]);
   const [formData, setFormData] = useState({
-    nombre: "",
-    descripcion: "",
+    Nombre: "",
+    Descripcion: "",
   });
 
-  const canEdit = user?.role === "admin";
+  const canEdit = user?.rolID === 1 || user?.rolID === 5; // Admin o Coordinador
 
   // Cargar cursos al montar el componente
   useEffect(() => {
@@ -23,11 +23,16 @@ const Courses = () => {
   const loadCourses = async () => {
     try {
       const response = await callApi(() => courseService.getCourses());
-      if (response && Array.isArray(response)) {
+      // Manejar diferentes formatos de respuesta
+      if (response && response.success && Array.isArray(response.data)) {
+        setCourses(response.data);
+      } else if (response && Array.isArray(response)) {
         setCourses(response);
+      } else {
+        setCourses([]);
       }
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error cargando cursos:", err);
     }
   };
 
@@ -45,21 +50,21 @@ const Courses = () => {
     if (!canEdit) return;
 
     try {
-      const response = await callApi(
+      await callApi(
         () => courseService.createCourse(formData),
         "Curso creado exitosamente"
       );
 
       // Limpiar formulario
       setFormData({
-        nombre: "",
-        descripcion: "",
+        Nombre: "",
+        Descripcion: "",
       });
 
       // Recargar la lista de cursos
       await loadCourses();
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error creando curso:", err);
     }
   };
 
@@ -77,7 +82,7 @@ const Courses = () => {
       // Recargar la lista de cursos
       await loadCourses();
     } catch (err) {
-      // El error ya está manejado por useApi
+      console.error("Error eliminando curso:", err);
     }
   };
 
@@ -87,7 +92,7 @@ const Courses = () => {
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Solo admin puede agregar cursos */}
+      {/* Solo admin/coordinador puede agregar cursos */}
       {canEdit && (
         <div className="courses-form">
           <h2>Registrar Nuevo Curso</h2>
@@ -97,8 +102,8 @@ const Courses = () => {
                 <label>Nombre del Curso:</label>
                 <input
                   type="text"
-                  name="nombre"
-                  value={formData.nombre}
+                  name="Nombre"
+                  value={formData.Nombre}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -110,8 +115,8 @@ const Courses = () => {
             <div className="form-group">
               <label>Descripción:</label>
               <textarea
-                name="descripcion"
-                value={formData.descripcion}
+                name="Descripcion"
+                value={formData.Descripcion}
                 onChange={handleInputChange}
                 rows="3"
                 placeholder="Descripción del curso..."

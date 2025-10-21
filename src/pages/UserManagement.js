@@ -9,12 +9,23 @@ const UserManagement = () => {
   const { loading, error, callApi, clearError } = useApi();
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    email: "",
-    contrasenia: "",
-    rol: "Docente",
+    PrimerNombre: "",
+    SegundoNombre: "",
+    PrimerApellido: "",
+    SegundoApellido: "",
+    Email: "",
+    Contrasena: "",
+    RolID: 2, // Valor por defecto: 2 (Profesor)
   });
+
+  // Mapeo de roles con IDs
+  const roles = [
+    { id: 1, nombre: "Administrador" },
+    { id: 2, nombre: "Profesor" },
+    { id: 3, nombre: "Alumno" },
+    { id: 4, nombre: "Personal de Desarrollo" },
+    { id: 5, nombre: "Coordinador" },
+  ];
 
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -23,12 +34,16 @@ const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await callApi(() => authService.getUsers());
-      if (response && Array.isArray(response)) {
+      // Enviar JSON vacío para obtener todos los usuarios
+      const response = await callApi(() => authService.getUsers({}));
+      if (response && response.success && Array.isArray(response.data)) {
+        setUsers(response.data);
+      } else if (response && Array.isArray(response)) {
+        // Por si la respuesta viene en formato diferente
         setUsers(response);
       }
     } catch (err) {
-      // Error manejado por useApi
+      console.error("Error cargando usuarios:", err);
     }
   };
 
@@ -36,7 +51,7 @@ const UserManagement = () => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: name === "RolID" ? parseInt(value) : value,
     });
     clearError();
   };
@@ -45,24 +60,37 @@ const UserManagement = () => {
     e.preventDefault();
 
     try {
+      // Preparar datos según el formato del API
+      const userData = {
+        PrimerNombre: formData.PrimerNombre,
+        SegundoNombre: formData.SegundoNombre,
+        PrimerApellido: formData.PrimerApellido,
+        SegundoApellido: formData.SegundoApellido,
+        Email: formData.Email,
+        RolID: formData.RolID,
+        Contrasena: formData.Contrasena,
+      };
+
       await callApi(
-        () => authService.createUser(formData),
+        () => authService.createUser(userData),
         "Usuario creado exitosamente"
       );
 
       // Limpiar formulario
       setFormData({
-        nombre: "",
-        apellido: "",
-        email: "",
-        contrasenia: "",
-        rol: "Docente",
+        PrimerNombre: "",
+        SegundoNombre: "",
+        PrimerApellido: "",
+        SegundoApellido: "",
+        Email: "",
+        Contrasena: "",
+        RolID: 2, // Reset a Profesor
       });
 
       // Recargar lista de usuarios
       await loadUsers();
     } catch (err) {
-      // Error manejado por useApi
+      console.error("Error creando usuario:", err);
     }
   };
 
@@ -71,24 +99,36 @@ const UserManagement = () => {
 
     try {
       await callApi(
-        () => authService.resetPassword(userEmail),
+        () => authService.resetPassword({ Email: userEmail }),
         "Solicitud de reinicio enviada"
       );
     } catch (err) {
-      // Error manejado por useApi
+      console.error("Error reiniciando contraseña:", err);
     }
   };
 
-  const getRoleBadge = (role) => {
+  const getRoleBadge = (rolId) => {
+    const role = roles.find((r) => r.id === rolId);
+    const roleName = role ? role.nombre : "Desconocido";
+
     const roleClasses = {
-      Administrador: "badge-admin",
-      Docente: "badge-docente",
-      Estudiante: "badge-estudiante",
+      1: "badge-admin",
+      2: "badge-docente",
+      3: "badge-estudiante",
+      4: "badge-dev",
+      5: "badge-coordinador",
     };
 
     return (
-      <span className={`role-badge ${roleClasses[role] || ""}`}>{role}</span>
+      <span className={`role-badge ${roleClasses[rolId] || ""}`}>
+        {roleName}
+      </span>
     );
+  };
+
+  const getRoleName = (rolId) => {
+    const role = roles.find((r) => r.id === rolId);
+    return role ? role.nombre : "Desconocido";
   };
 
   return (
@@ -104,24 +144,23 @@ const UserManagement = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
-                <label>Nombre:</label>
+                <label>Primer Nombre *</label>
                 <input
                   type="text"
-                  name="nombre"
-                  value={formData.nombre}
+                  name="PrimerNombre"
+                  value={formData.PrimerNombre}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
                 />
               </div>
               <div className="form-group">
-                <label>Apellido:</label>
+                <label>Segundo Nombre</label>
                 <input
                   type="text"
-                  name="apellido"
-                  value={formData.apellido}
+                  name="SegundoNombre"
+                  value={formData.SegundoNombre}
                   onChange={handleInputChange}
-                  required
                   disabled={loading}
                 />
               </div>
@@ -129,22 +168,46 @@ const UserManagement = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Email:</label>
+                <label>Primer Apellido *</label>
                 <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
+                  type="text"
+                  name="PrimerApellido"
+                  value={formData.PrimerApellido}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
                 />
               </div>
               <div className="form-group">
-                <label>Contraseña Temporal:</label>
+                <label>Segundo Apellido</label>
+                <input
+                  type="text"
+                  name="SegundoApellido"
+                  value={formData.SegundoApellido}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  name="Email"
+                  value={formData.Email}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label>Contraseña Temporal *</label>
                 <input
                   type="password"
-                  name="contrasenia"
-                  value={formData.contrasenia}
+                  name="Contrasena"
+                  value={formData.Contrasena}
                   onChange={handleInputChange}
                   required
                   disabled={loading}
@@ -153,17 +216,19 @@ const UserManagement = () => {
             </div>
 
             <div className="form-group">
-              <label>Rol:</label>
+              <label>Rol *</label>
               <select
-                name="rol"
-                value={formData.rol}
+                name="RolID"
+                value={formData.RolID}
                 onChange={handleInputChange}
                 required
                 disabled={loading}
               >
-                <option value="Docente">Docente</option>
-                <option value="Administrador">Administrador</option>
-                <option value="Estudiante">Estudiante</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -185,7 +250,7 @@ const UserManagement = () => {
               <table>
                 <thead>
                   <tr>
-                    <th>Nombre</th>
+                    <th>Nombre Completo</th>
                     <th>Email</th>
                     <th>Rol</th>
                     <th>Acciones</th>
@@ -193,12 +258,14 @@ const UserManagement = () => {
                 </thead>
                 <tbody>
                   {users.map((userItem) => (
-                    <tr key={userItem.id}>
+                    <tr key={userItem.usuarioId || userItem.id}>
                       <td>
-                        {userItem.nombre} {userItem.apellido}
+                        {userItem.primerNombre} {userItem.segundoNombre || ""}{" "}
+                        {userItem.primerApellido}{" "}
+                        {userItem.segundoApellido || ""}
                       </td>
                       <td>{userItem.email}</td>
-                      <td>{getRoleBadge(userItem.rol)}</td>
+                      <td>{getRoleBadge(userItem.rolID)}</td>
                       <td>
                         <button
                           className="btn-reset"
