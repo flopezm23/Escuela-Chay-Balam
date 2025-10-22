@@ -1,21 +1,21 @@
 import api, { API_ENDPOINTS } from "./api";
 
 export const authService = {
-  // Login
+  // Login - IMPORTANTE: El API espera "Contrasenia" no "password"
   async login(email, password) {
     try {
-      const response = await api.post(API_ENDPOINTS.LOGIN, {
+      console.log("Enviando login al API:", {
         Email: email,
         Contrasenia: password,
       });
-
-      // Guardar token en localStorage
-      if (response.token) {
-        localStorage.setItem("authToken", response.token);
-      }
-
+      const response = await api.post(API_ENDPOINTS.LOGIN, {
+        Email: email,
+        Contrasenia: password, // ← Este campo debe ser "Contrasenia"
+      });
+      console.log("Respuesta del API:", response);
       return response;
     } catch (error) {
+      console.error("Error en authService.login:", error);
       throw new Error(error.mensaje || "Error al iniciar sesión");
     }
   },

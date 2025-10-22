@@ -18,41 +18,79 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     setLoading(true);
+    console.log("Iniciando login con:", { email, password });
 
     try {
       const response = await authService.login(email, password);
+      console.log("Respuesta completa del login:", response);
 
-      // Verificar si la respuesta es exitosa
-      if (response && response.success) {
-        const userData = {
-          usuarioId: response.data?.usuarioId || response.usuarioId,
-          email: response.data?.email || response.email,
-          primerNombre: response.data?.primerNombre || response.primerNombre,
-          segundoNombre: response.data?.segundoNombre || response.segundoNombre,
-          primerApellido:
-            response.data?.primerApellido || response.primerApellido,
-          segundoApellido:
-            response.data?.segundoApellido || response.segundoApellido,
-          rolID: response.data?.rolID || response.rolID,
-          rol: mapRole(response.data?.rolID || response.rolID),
-          token: response.token || response.data?.token,
-        };
+      // Verificar diferentes formatos de respuesta exitosa
+      if (
+        response &&
+        (response.success === true || response.token || response.usuarioId)
+      ) {
+        let userData;
 
-        setUser(userData);
-        setIsAuthenticated(true);
-
-        // Guardar en localStorage
-        localStorage.setItem("user", JSON.stringify(userData));
-        if (userData.token) {
-          localStorage.setItem("authToken", userData.token);
+        // Caso 1: Respuesta con estructura { success: true, data: {...} }
+        if (response.success && response.data) {
+          userData = {
+            usuarioId: response.data.usuarioId,
+            email: response.data.email,
+            primerNombre: response.data.primerNombre,
+            segundoNombre: response.data.segundoNombre,
+            primerApellido: response.data.primerApellido,
+            segundoApellido: response.data.segundoApellido,
+            rolID: response.data.rolID,
+            rol: mapRole(response.data.rolID),
+            token: response.token || response.data.token,
+          };
+        }
+        // Caso 2: Respuesta directa con campos en el root
+        else if (response.usuarioId) {
+          userData = {
+            usuarioId: response.usuarioId,
+            email: response.email,
+            primerNombre: response.primerNombre,
+            segundoNombre: response.segundoNombre,
+            primerApellido: response.primerApellido,
+            segundoApellido: response.segundoApellido,
+            rolID: response.rolID,
+            rol: mapRole(response.rolID),
+            token: response.token,
+          };
+        }
+        // Caso 3: Solo token (formato mínimo)
+        else if (response.token) {
+          userData = {
+            usuarioId: response.usuarioId || 0,
+            email: email,
+            primerNombre: "Usuario",
+            primerApellido: "Sistema",
+            rolID: response.rolID || 1,
+            rol: mapRole(response.rolID || 1),
+            token: response.token,
+          };
         }
 
-        setLoading(false);
-        return { success: true, user: userData };
-      } else {
-        throw new Error(response.mensaje || "Error en el inicio de sesión");
+        if (userData) {
+          setUser(userData);
+          setIsAuthenticated(true);
+
+          // Guardar en localStorage
+          localStorage.setItem("user", JSON.stringify(userData));
+          if (userData.token) {
+            localStorage.setItem("authToken", userData.token);
+          }
+
+          setLoading(false);
+          return { success: true, user: userData };
+        }
       }
+
+      // Si llegamos aquí, la respuesta no tiene el formato esperado
+      throw new Error(response?.mensaje || "Formato de respuesta inesperado");
     } catch (error) {
+      console.error("Error completo en login:", error);
       setLoading(false);
       setIsAuthenticated(false);
       return {
@@ -106,7 +144,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Error parsing saved user:", error);
-        logout(); // Limpiar datos corruptos
+        logout();
       }
     }
   }, []);
@@ -123,7 +161,6 @@ export const AuthProvider = ({ children }) => {
     isDesarrollo: user?.rolID === 4,
     isCoordinador: user?.rolID === 5,
     getRoleName,
-    // Funciones de conveniencia para permisos
     canManageUsers: user?.rolID === 1 || user?.rolID === 5,
     canManageCourses: user?.rolID === 1 || user?.rolID === 5,
     canManageTasks: user?.rolID === 1 || user?.rolID === 2 || user?.rolID === 5,

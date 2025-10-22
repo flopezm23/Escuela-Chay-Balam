@@ -30,8 +30,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    console.log("Intentando login con:", formData);
 
     const result = await login(formData.email, formData.password);
+    console.log("Resultado del login:", result);
 
     if (result.success) {
       navigate("/");
@@ -40,7 +42,7 @@ const Login = () => {
     }
   };
 
-  // Credenciales de prueba de la API real
+  // Credenciales de prueba
   const demoUsers = [
     {
       role: "Administrador",
@@ -72,6 +74,7 @@ const Login = () => {
               onChange={handleInputChange}
               required
               disabled={loading}
+              placeholder="msinaya2@miumg.edu.gt"
             />
           </div>
 
@@ -84,10 +87,15 @@ const Login = () => {
               onChange={handleInputChange}
               required
               disabled={loading}
+              placeholder="T2eP+Hge"
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="error-message">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
 
           <button type="submit" className="btn-login" disabled={loading}>
             {loading ? "Iniciando Sesión..." : "Iniciar Sesión"}
