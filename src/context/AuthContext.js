@@ -24,71 +24,38 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password);
       console.log("Respuesta completa del login:", response);
 
-      // Verificar diferentes formatos de respuesta exitosa
-      if (
-        response &&
-        (response.success === true || response.token || response.usuarioId)
-      ) {
-        let userData;
+      // El API está devolviendo: {correo, nombre, apellido, rol}
+      if (response && response.correo && response.rol) {
+        // Parsear nombre y apellido (vienen como "Mynor Styven" y "Sinay Alvarez")
+        const nombres = response.nombre.split(" ");
+        const apellidos = response.apellido.split(" ");
 
-        // Caso 1: Respuesta con estructura { success: true, data: {...} }
-        if (response.success && response.data) {
-          userData = {
-            usuarioId: response.data.usuarioId,
-            email: response.data.email,
-            primerNombre: response.data.primerNombre,
-            segundoNombre: response.data.segundoNombre,
-            primerApellido: response.data.primerApellido,
-            segundoApellido: response.data.segundoApellido,
-            rolID: response.data.rolID,
-            rol: mapRole(response.data.rolID),
-            token: response.token || response.data.token,
-          };
-        }
-        // Caso 2: Respuesta directa con campos en el root
-        else if (response.usuarioId) {
-          userData = {
-            usuarioId: response.usuarioId,
-            email: response.email,
-            primerNombre: response.primerNombre,
-            segundoNombre: response.segundoNombre,
-            primerApellido: response.primerApellido,
-            segundoApellido: response.segundoApellido,
-            rolID: response.rolID,
-            rol: mapRole(response.rolID),
-            token: response.token,
-          };
-        }
-        // Caso 3: Solo token (formato mínimo)
-        else if (response.token) {
-          userData = {
-            usuarioId: response.usuarioId || 0,
-            email: email,
-            primerNombre: "Usuario",
-            primerApellido: "Sistema",
-            rolID: response.rolID || 1,
-            rol: mapRole(response.rolID || 1),
-            token: response.token,
-          };
-        }
+        const userData = {
+          usuarioId: 0, // El API no está devolviendo ID, usar valor temporal
+          email: response.correo,
+          primerNombre: nombres[0] || response.nombre,
+          segundoNombre: nombres[1] || "",
+          primerApellido: apellidos[0] || response.apellido,
+          segundoApellido: apellidos[1] || "",
+          rolID: mapRoleToID(response.rol), // Convertir rol string a ID numérico
+          rol: response.rol.toLowerCase(),
+          token: generarTokenTemporal(), // Generar token temporal ya que el API no lo devuelve
+        };
 
-        if (userData) {
-          setUser(userData);
-          setIsAuthenticated(true);
+        console.log("Usuario procesado:", userData);
 
-          // Guardar en localStorage
-          localStorage.setItem("user", JSON.stringify(userData));
-          if (userData.token) {
-            localStorage.setItem("authToken", userData.token);
-          }
+        setUser(userData);
+        setIsAuthenticated(true);
 
-          setLoading(false);
-          return { success: true, user: userData };
-        }
+        // Guardar en localStorage
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("authToken", userData.token);
+
+        setLoading(false);
+        return { success: true, user: userData };
+      } else {
+        throw new Error(response?.mensaje || "Formato de respuesta inesperado");
       }
-
-      // Si llegamos aquí, la respuesta no tiene el formato esperado
-      throw new Error(response?.mensaje || "Formato de respuesta inesperado");
     } catch (error) {
       console.error("Error completo en login:", error);
       setLoading(false);
@@ -100,7 +67,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Mapear roles por ID numérico
+  // Convertir rol string a ID numérico
+  const mapRoleToID = (rolString) => {
+    const roleMap = {
+      Administrador: 1,
+      Profesor: 2,
+      Docente: 2,
+      Alumno: 3,
+      Estudiante: 3,
+      "Personal de Desarrollo": 4,
+      Coordinador: 5,
+    };
+    return roleMap[rolString] || 3;
+  };
+
+  // Mapear roles por ID numérico para uso interno
   const mapRole = (rolID) => {
     const roleMap = {
       1: "admin",
@@ -110,6 +91,15 @@ export const AuthProvider = ({ children }) => {
       5: "coordinador",
     };
     return roleMap[rolID] || "estudiante";
+  };
+
+  // Generar token temporal (ya que el API no lo devuelve)
+  const generarTokenTemporal = () => {
+    return (
+      "temp_token_" +
+      Math.random().toString(36).substr(2) +
+      Date.now().toString(36)
+    );
   };
 
   // Obtener nombre del rol para mostrar

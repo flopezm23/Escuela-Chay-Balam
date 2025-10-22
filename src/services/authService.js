@@ -1,18 +1,21 @@
 import api, { API_ENDPOINTS } from "./api";
 
 export const authService = {
-  // Login - IMPORTANTE: El API espera "Contrasenia" no "password"
+  // Login
   async login(email, password) {
     try {
       console.log("Enviando login al API:", {
         Email: email,
         Contrasenia: password,
+        endpoint: API_ENDPOINTS.LOGIN,
       });
+
       const response = await api.post(API_ENDPOINTS.LOGIN, {
         Email: email,
-        Contrasenia: password, // ← Este campo debe ser "Contrasenia"
+        Contrasenia: password,
       });
-      console.log("Respuesta del API:", response);
+
+      console.log("Respuesta cruda del API:", response);
       return response;
     } catch (error) {
       console.error("Error en authService.login:", error);
@@ -20,7 +23,7 @@ export const authService = {
     }
   },
 
-  // Reset password
+  // ... resto de los métodos permanecen igual
   async resetPassword(email) {
     try {
       const response = await api.post(API_ENDPOINTS.RESET_PASSWORD, {
@@ -32,7 +35,6 @@ export const authService = {
     }
   },
 
-  // Crear usuario
   async createUser(userData) {
     try {
       const response = await api.post(API_ENDPOINTS.CREATE_USER, {
@@ -50,7 +52,6 @@ export const authService = {
     }
   },
 
-  // Actualizar usuario
   async updateUser(userData) {
     try {
       const response = await api.post(API_ENDPOINTS.UPDATE_USER, {
@@ -66,7 +67,6 @@ export const authService = {
     }
   },
 
-  // Obtener usuarios con filtros
   async getUsers(filters = {}) {
     try {
       const response = await api.post(API_ENDPOINTS.GET_USERS, filters);
@@ -76,7 +76,6 @@ export const authService = {
     }
   },
 
-  // Enviar avisos masivos
   async sendMassNotification(avisoData) {
     try {
       const response = await api.post(API_ENDPOINTS.SEND_NOTIFICATIONS, {
@@ -89,7 +88,6 @@ export const authService = {
     }
   },
 
-  // Logout
   logout() {
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");

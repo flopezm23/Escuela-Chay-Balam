@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para agregar token a las requests
+// Interceptor para agregar token a las requests (si existe)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
@@ -26,6 +26,7 @@ api.interceptors.request.use(
 // Interceptor para manejar respuestas
 api.interceptors.response.use(
   (response) => {
+    // El API puede devolver directamente los datos o con estructura { data, success, mensaje }
     return response.data;
   },
   (error) => {
@@ -34,7 +35,18 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    return Promise.reject(error.response?.data || error.message);
+
+    // Mejor manejo de errores
+    const errorMessage =
+      error.response?.data?.mensaje ||
+      error.response?.data?.message ||
+      error.message ||
+      "Error de conexión";
+
+    return Promise.reject({
+      mensaje: errorMessage,
+      status: error.response?.status,
+    });
   }
 );
 
