@@ -16,28 +16,13 @@ import Courses from "./pages/Courses";
 import Tasks from "./pages/Tasks";
 import Grades from "./pages/Grades";
 import Communication from "./pages/Communication";
-import MassNotifications from "./pages/MassNotifications"; // Nuevo import
+import MassNotifications from "./pages/MassNotifications";
 import Information from "./pages/Information";
 import UserManagement from "./pages/UserManagement";
 import "./App.css";
 
-// Componente para redirigir según el rol
-const RoleBasedRedirect = () => {
-  const { user } = useAuth();
-
-  // Redirigir según el RolID
-  if (user?.rolID === 3) {
-    // Estudiante
-    return <Navigate to="/grades" replace />;
-  } else if (user?.rolID === 2 || user?.rolID === 5) {
-    // Profesor o Coordinador
-    return <Navigate to="/tasks" replace />;
-  }
-
-  return <Welcome />;
-};
-
-function AppContent() {
+// Componente simplificado para evitar errores
+const AppContent = () => {
   const { isAuthenticated } = useAuth();
 
   return (
@@ -49,89 +34,71 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Rutas protegidas */}
+          {/* Ruta principal protegida */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <RoleBasedRedirect />
+                <Welcome />
               </ProtectedRoute>
             }
           />
 
-          {/* Gestión de Estudiantes - Admin y Coordinador */}
+          {/* Otras rutas protegidas - versión simplificada */}
           <Route
             path="/students"
             element={
               <ProtectedRoute allowedRoles={[1, 5]}>
-                {" "}
-                {/* Admin y Coordinador */}
                 <Students />
               </ProtectedRoute>
             }
           />
 
-          {/* Gestión de Cursos - Admin y Coordinador */}
           <Route
             path="/courses"
             element={
               <ProtectedRoute allowedRoles={[1, 5]}>
-                {" "}
-                {/* Admin y Coordinador */}
                 <Courses />
               </ProtectedRoute>
             }
           />
 
-          {/* Gestión de Tareas - Admin, Profesor y Coordinador */}
           <Route
             path="/tasks"
             element={
               <ProtectedRoute allowedRoles={[1, 2, 5]}>
-                {" "}
-                {/* Admin, Profesor y Coordinador */}
                 <Tasks />
               </ProtectedRoute>
             }
           />
 
-          {/* Calificaciones - Todos los roles excepto Desarrollo */}
           <Route
             path="/grades"
             element={
               <ProtectedRoute allowedRoles={[1, 2, 3, 5]}>
-                {" "}
-                {/* Admin, Profesor, Estudiante y Coordinador */}
                 <Grades />
               </ProtectedRoute>
             }
           />
 
-          {/* Comunicación Interna - Admin, Profesor y Coordinador */}
           <Route
             path="/communication"
             element={
               <ProtectedRoute allowedRoles={[1, 2, 5]}>
-                {" "}
-                {/* Admin, Profesor y Coordinador */}
                 <Communication />
               </ProtectedRoute>
             }
           />
 
-          {/* Avisos Masivos - Admin y Coordinador */}
           <Route
             path="/mass-notifications"
             element={
               <ProtectedRoute allowedRoles={[1, 5]}>
-                {" "}
-                {/* Admin y Coordinador */}
                 <MassNotifications />
               </ProtectedRoute>
             }
           />
 
-          {/* Información - Todos los usuarios autenticados */}
           <Route
             path="/information"
             element={
@@ -141,13 +108,10 @@ function AppContent() {
             }
           />
 
-          {/* Gestión de Usuarios - Solo Admin */}
           <Route
             path="/user-management"
             element={
               <ProtectedRoute allowedRoles={[1]}>
-                {" "}
-                {/* Solo Admin */}
                 <UserManagement />
               </ProtectedRoute>
             }
@@ -159,7 +123,7 @@ function AppContent() {
       </div>
     </div>
   );
-}
+};
 
 function App() {
   return (
