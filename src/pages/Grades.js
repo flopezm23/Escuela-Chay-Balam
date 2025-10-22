@@ -15,6 +15,11 @@ const Grades = () => {
   const [courses, setCourses] = useState([]);
   const [gradesList, setGradesList] = useState([]);
   const [sections, setSections] = useState([]);
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [availableGrades, setAvailableGrades] = useState([]);
+  const [availableSections, setAvailableSections] = useState([]);
+
   const [formData, setFormData] = useState({
     UsuarioId: "",
     TareaId: "",
@@ -29,8 +34,6 @@ const Grades = () => {
     SeccionId: "",
   });
 
-  const [selectedStudentData, setSelectedStudentData] = useState(null);
-
   const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5;
   const isStudent = user?.rolID === 3;
   const pageTitle = isStudent
@@ -42,132 +45,147 @@ const Grades = () => {
     loadInitialData();
     if (isStudent) {
       loadStudentGrades();
+    } else {
+      // Cargar datos iniciales sin filtros
+      loadFilteredData();
     }
   }, []);
 
-  // Cargar tareas pendientes cuando cambien los filtros
+  // Cuando cambien los filtros, cargar datos filtrados
   useEffect(() => {
     if (!isStudent) {
-      loadPendingTasks();
+      loadFilteredData();
     }
   }, [filters]);
 
   const loadInitialData = async () => {
     try {
-      // Cargar estudiantes (solo rol 3 - Alumnos)
+      // Cargar todos los estudiantes (solo rol 3 - Alumnos)
       const studentsResponse = await callApi(() =>
         authService.getUsers({ RolID: 3 })
       );
       if (studentsResponse) {
-        setStudents(studentsResponse.data || studentsResponse || []);
+        const allStudents = studentsResponse.data || studentsResponse || [];
+        setStudents(allStudents);
+        setAvailableStudents(allStudents);
       }
 
-      // Cargar cursos
+      // Cargar todos los cursos
       const coursesResponse = await callApi(() => courseService.getCourses({}));
       if (coursesResponse) {
-        setCourses(coursesResponse.data || coursesResponse || []);
+        const allCourses = coursesResponse.data || coursesResponse || [];
+        setCourses(allCourses);
+        setAvailableCourses(allCourses);
       }
 
-      // Cargar grados
+      // Cargar todos los grados
       const gradesResponse = await callApi(() =>
         gradeSectionService.getGrades({})
       );
       if (gradesResponse) {
-        setGradesList(gradesResponse.data || gradesResponse || []);
+        const allGrades = gradesResponse.data || gradesResponse || [];
+        setGradesList(allGrades);
+        setAvailableGrades(allGrades);
       }
 
-      // Cargar secciones inicialmente (todas)
+      // Cargar todas las secciones
       const sectionsResponse = await callApi(() =>
         gradeSectionService.getSections({})
       );
       if (sectionsResponse) {
-        setSections(sectionsResponse.data || sectionsResponse || []);
+        const allSections = sectionsResponse.data || sectionsResponse || [];
+        setSections(allSections);
+        setAvailableSections(allSections);
       }
     } catch (err) {
       console.error("Error cargando datos iniciales:", err);
     }
   };
 
-  // Cuando se selecciona un estudiante, cargar sus datos y llenar automáticamente los filtros
-  const handleEstudianteChange = async (usuarioId) => {
-    if (usuarioId) {
-      try {
-        console.log("Cargando datos del estudiante:", usuarioId);
+  // Cargar datos filtrados basados en los filtros actuales
+  const loadFilteredData = async () => {
+    try {
+      // Limpiar filtros vacíos antes de enviar
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(
+          ([_, value]) => value !== "" && value != null
+        )
+      );
 
-        // Llamar al endpoint con el UsuarioId para obtener todos los datos del estudiante
-        const studentDataResponse = await callApi(() =>
-          gradingService.filterGrades({ UsuarioId: parseInt(usuarioId) })
-        );
+      console.log("Cargando datos con filtros:", cleanFilters);
 
-        console.log("Datos del estudiante:", studentDataResponse);
+      const response = await callApi(() =>
+        gradingService.filterGrades(cleanFilters)
+      );
 
-        if (studentDataResponse) {
-          const studentData = studentDataResponse.data || studentDataResponse;
-          setSelectedStudentData(studentData);
+      if (response) {
+        const filteredData = response.data || response || [];
+        setGrades(filteredData);
+        console.log("Datos filtrados cargados:", filteredData);
 
-          // Si es un array, tomar el primer elemento (o procesar según la estructura)
-          if (Array.isArray(studentData) && studentData.length > 0) {
-            const firstRecord = studentData[0];
-
-            // Actualizar automáticamente los filtros con los datos del estudiante
-            setFilters((prev) => ({
-              ...prev,
-              UsuarioId: usuarioId,
-              CursoId: firstRecord.cursoId || firstRecord.cursoID || "",
-              GradoId: firstRecord.gradoId || firstRecord.gradoID || "",
-              SeccionId: firstRecord.seccionId || firstRecord.seccionID || "",
-            }));
-          } else if (studentData && typeof studentData === "object") {
-            // Si es un objeto individual
-            setFilters((prev) => ({
-              ...prev,
-              UsuarioId: usuarioId,
-              CursoId: studentData.cursoId || studentData.cursoID || "",
-              GradoId: studentData.gradoId || studentData.gradoID || "",
-              SeccionId: studentData.seccionId || studentData.seccionID || "",
-            }));
-          }
-        }
-      } catch (err) {
-        console.error("Error cargando datos del estudiante:", err);
-        setSelectedStudentData(null);
+        // Actualizar las listas disponibles basadas en los datos filtrados
+        updateAvailableOptions(filteredData);
+      } else {
+        setGrades([]);
+        resetAvailableOptions();
       }
-    } else {
-      // Si no hay estudiante seleccionado, limpiar los datos
-      setSelectedStudentData(null);
-      setFilters((prev) => ({
-        ...prev,
-        UsuarioId: "",
-        CursoId: "",
-        GradoId: "",
-        SeccionId: "",
-      }));
+    } catch (err) {
+      console.error("Error cargando datos filtrados:", err);
+      setGrades([]);
+      resetAvailableOptions();
     }
   };
 
-  // Cuando cambie el GradoId, cargar las secciones de ese grado
-  const handleGradoChange = async (gradoId) => {
-    if (gradoId) {
-      try {
-        const sectionsResponse = await callApi(() =>
-          gradeSectionService.getSections({ GradoID: parseInt(gradoId) })
-        );
-        if (sectionsResponse) {
-          setSections(sectionsResponse.data || sectionsResponse || []);
-        }
-      } catch (err) {
-        console.error("Error cargando secciones del grado:", err);
-        setSections([]);
-      }
-    } else {
-      // Si no hay grado seleccionado, cargar todas las secciones
-      const sectionsResponse = await callApi(() =>
-        gradeSectionService.getSections({})
-      );
-      if (sectionsResponse) {
-        setSections(sectionsResponse.data || sectionsResponse || []);
-      }
+  // Actualizar las opciones disponibles en los selects basado en los datos filtrados
+  const updateAvailableOptions = (filteredData) => {
+    if (!filteredData || filteredData.length === 0) {
+      resetAvailableOptions();
+      return;
     }
+
+    // Extraer IDs únicos de los datos filtrados
+    const uniqueStudentIds = [
+      ...new Set(filteredData.map((item) => item.usuarioId || item.UsuarioId)),
+    ].filter(Boolean);
+    const uniqueCourseIds = [
+      ...new Set(
+        filteredData.map((item) => item.cursoId || item.cursoID || item.CursoId)
+      ),
+    ].filter(Boolean);
+    const uniqueGradeIds = [
+      ...new Set(
+        filteredData.map((item) => item.gradoId || item.gradoID || item.GradoId)
+      ),
+    ].filter(Boolean);
+    const uniqueSectionIds = [
+      ...new Set(
+        filteredData.map(
+          (item) => item.seccionId || item.seccionID || item.SeccionId
+        )
+      ),
+    ].filter(Boolean);
+
+    // Filtrar las listas completas basadas en los IDs disponibles
+    setAvailableStudents(
+      students.filter((student) => uniqueStudentIds.includes(student.usuarioId))
+    );
+    setAvailableCourses(
+      courses.filter((course) => uniqueCourseIds.includes(course.cursoID))
+    );
+    setAvailableGrades(
+      gradesList.filter((grade) => uniqueGradeIds.includes(grade.gradoID))
+    );
+    setAvailableSections(
+      sections.filter((section) => uniqueSectionIds.includes(section.seccionID))
+    );
+  };
+
+  // Resetear las opciones disponibles a todas
+  const resetAvailableOptions = () => {
+    setAvailableStudents(students);
+    setAvailableCourses(courses);
+    setAvailableGrades(gradesList);
+    setAvailableSections(sections);
   };
 
   const loadStudentGrades = async () => {
@@ -184,33 +202,6 @@ const Grades = () => {
     }
   };
 
-  const loadPendingTasks = async () => {
-    try {
-      // Limpiar filtros vacíos antes de enviar
-      const cleanFilters = Object.fromEntries(
-        Object.entries(filters).filter(
-          ([_, value]) => value !== "" && value != null
-        )
-      );
-
-      console.log("Cargando tareas con filtros:", cleanFilters);
-
-      const response = await callApi(() =>
-        gradingService.filterGrades(cleanFilters)
-      );
-
-      if (response) {
-        setGrades(response.data || response || []);
-        console.log("Tareas cargadas:", response.data || response);
-      } else {
-        setGrades([]);
-      }
-    } catch (err) {
-      console.error("Error cargando tareas pendientes:", err);
-      setGrades([]);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -220,7 +211,7 @@ const Grades = () => {
     clearError();
   };
 
-  const handleFilterChange = async (e) => {
+  const handleFilterChange = (e) => {
     const { name, value } = e.target;
     const newFilters = {
       ...filters,
@@ -228,17 +219,7 @@ const Grades = () => {
     };
     setFilters(newFilters);
 
-    // Llamar endpoints específicos cuando cambien los selects
-    switch (name) {
-      case "UsuarioId":
-        await handleEstudianteChange(value);
-        break;
-      case "GradoId":
-        await handleGradoChange(value);
-        break;
-      default:
-        break;
-    }
+    // No necesitamos llamar loadFilteredData aquí porque el useEffect se encarga
   };
 
   const handleSubmit = async (e) => {
@@ -266,8 +247,8 @@ const Grades = () => {
         Observacion: "",
       });
 
-      // Recargar tareas pendientes
-      await loadPendingTasks();
+      // Recargar datos filtrados
+      await loadFilteredData();
     } catch (err) {
       console.error("Error registrando calificación:", err);
     }
@@ -305,6 +286,11 @@ const Grades = () => {
           {/* Filtros para buscar tareas pendientes */}
           <div className="filters-section">
             <h3>Filtrar Tareas Pendientes</h3>
+            <p className="filter-info">
+              <strong>Nota:</strong> Al seleccionar cualquier filtro, se
+              mostrarán solo las opciones relevantes.
+            </p>
+
             <div className="form-row">
               <div className="form-group">
                 <label>Estudiante:</label>
@@ -313,13 +299,14 @@ const Grades = () => {
                   value={filters.UsuarioId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Seleccionar estudiante</option>
-                  {students.map((student) => (
+                  <option value="">Todos los estudiantes</option>
+                  {availableStudents.map((student) => (
                     <option key={student.usuarioId} value={student.usuarioId}>
                       {student.primerNombre} {student.primerApellido}
                     </option>
                   ))}
                 </select>
+                <small>Disponibles: {availableStudents.length}</small>
               </div>
               <div className="form-group">
                 <label>Curso:</label>
@@ -327,23 +314,15 @@ const Grades = () => {
                   name="CursoId"
                   value={filters.CursoId}
                   onChange={handleFilterChange}
-                  disabled={!filters.UsuarioId} // Deshabilitar hasta que se seleccione estudiante
                 >
-                  <option value="">
-                    {filters.UsuarioId
-                      ? "Cargando..."
-                      : "Seleccione estudiante primero"}
-                  </option>
-                  {filters.CursoId &&
-                    courses.find((c) => c.cursoID == filters.CursoId) && (
-                      <option value={filters.CursoId}>
-                        {
-                          courses.find((c) => c.cursoID == filters.CursoId)
-                            ?.nombre
-                        }
-                      </option>
-                    )}
+                  <option value="">Todos los cursos</option>
+                  {availableCourses.map((course) => (
+                    <option key={course.cursoID} value={course.cursoID}>
+                      {course.nombre}
+                    </option>
+                  ))}
                 </select>
+                <small>Disponibles: {availableCourses.length}</small>
               </div>
             </div>
             <div className="form-row">
@@ -353,23 +332,15 @@ const Grades = () => {
                   name="GradoId"
                   value={filters.GradoId}
                   onChange={handleFilterChange}
-                  disabled={!filters.UsuarioId}
                 >
-                  <option value="">
-                    {filters.UsuarioId
-                      ? "Cargando..."
-                      : "Seleccione estudiante primero"}
-                  </option>
-                  {filters.GradoId &&
-                    gradesList.find((g) => g.gradoID == filters.GradoId) && (
-                      <option value={filters.GradoId}>
-                        {
-                          gradesList.find((g) => g.gradoID == filters.GradoId)
-                            ?.nombreGrado
-                        }
-                      </option>
-                    )}
+                  <option value="">Todos los grados</option>
+                  {availableGrades.map((grade) => (
+                    <option key={grade.gradoID} value={grade.gradoID}>
+                      {grade.nombreGrado}
+                    </option>
+                  ))}
                 </select>
+                <small>Disponibles: {availableGrades.length}</small>
               </div>
               <div className="form-group">
                 <label>Sección:</label>
@@ -377,61 +348,18 @@ const Grades = () => {
                   name="SeccionId"
                   value={filters.SeccionId}
                   onChange={handleFilterChange}
-                  disabled={!filters.UsuarioId}
                 >
-                  <option value="">
-                    {filters.UsuarioId
-                      ? "Cargando..."
-                      : "Seleccione estudiante primero"}
-                  </option>
-                  {filters.SeccionId &&
-                    sections.find((s) => s.seccionID == filters.SeccionId) && (
-                      <option value={filters.SeccionId}>
-                        {
-                          sections.find((s) => s.seccionID == filters.SeccionId)
-                            ?.nombreSeccion
-                        }
-                      </option>
-                    )}
+                  <option value="">Todas las secciones</option>
+                  {availableSections.map((section) => (
+                    <option key={section.seccionID} value={section.seccionID}>
+                      {section.nombreSeccion}{" "}
+                      {section.nombreGrado ? `- ${section.nombreGrado}` : ""}
+                    </option>
+                  ))}
                 </select>
+                <small>Disponibles: {availableSections.length}</small>
               </div>
             </div>
-
-            {/* Mostrar información del estudiante seleccionado */}
-            {selectedStudentData && (
-              <div className="student-info">
-                <h4>Información del Estudiante Seleccionado:</h4>
-                <div className="info-grid">
-                  <div>
-                    <strong>Estudiante:</strong>{" "}
-                    {selectedStudentData.estudiante ||
-                      students.find((s) => s.usuarioId == filters.UsuarioId)
-                        ?.primerNombre +
-                        " " +
-                        students.find((s) => s.usuarioId == filters.UsuarioId)
-                          ?.primerApellido}
-                  </div>
-                  <div>
-                    <strong>Curso:</strong>{" "}
-                    {selectedStudentData.curso ||
-                      courses.find((c) => c.cursoID == filters.CursoId)?.nombre}
-                  </div>
-                  <div>
-                    <strong>Grado:</strong>{" "}
-                    {
-                      gradesList.find((g) => g.gradoID == filters.GradoId)
-                        ?.nombreGrado
-                    }
-                  </div>
-                  <div>
-                    <strong>Sección:</strong>{" "}
-                    {selectedStudentData.seccion ||
-                      sections.find((s) => s.seccionID == filters.SeccionId)
-                        ?.nombreSeccion}
-                  </div>
-                </div>
-              </div>
-            )}
 
             <button
               type="button"
@@ -443,17 +371,10 @@ const Grades = () => {
                   GradoId: "",
                   SeccionId: "",
                 });
-                setSelectedStudentData(null);
-                // Resetear también las secciones a todas
-                const sectionsResponse = callApi(() =>
-                  gradeSectionService.getSections({})
-                );
-                if (sectionsResponse) {
-                  setSections(sectionsResponse.data || sectionsResponse || []);
-                }
+                resetAvailableOptions();
               }}
             >
-              Limpiar Filtros
+              Limpiar Todos los Filtros
             </button>
           </div>
 
@@ -468,7 +389,7 @@ const Grades = () => {
                   required
                 >
                   <option value="">Seleccionar estudiante</option>
-                  {students.map((student) => (
+                  {availableStudents.map((student) => (
                     <option key={student.usuarioId} value={student.usuarioId}>
                       {student.primerNombre} {student.primerApellido}
                     </option>
@@ -557,7 +478,7 @@ const Grades = () => {
           <p className="no-data">
             {isStudent
               ? "No tienes calificaciones registradas"
-              : "No hay tareas pendientes de calificación"}
+              : "No hay tareas pendientes de calificación con los filtros actuales"}
           </p>
         ) : (
           <div className="table-container">
