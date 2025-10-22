@@ -67,7 +67,7 @@ const Grades = () => {
       if (studentsResponse) {
         const allStudents = studentsResponse.data || studentsResponse || [];
         setStudents(allStudents);
-        setAvailableStudents(allStudents);
+        setAvailableStudents(allStudents); // Inicialmente mostrar todos los estudiantes
       }
 
       // Cargar todos los cursos
@@ -127,19 +127,24 @@ const Grades = () => {
         updateAvailableOptions(filteredData);
       } else {
         setGrades([]);
-        resetAvailableOptions();
+        // No resetear completamente, mantener estudiantes disponibles
+        updateAvailableOptions([]);
       }
     } catch (err) {
       console.error("Error cargando datos filtrados:", err);
       setGrades([]);
-      resetAvailableOptions();
+      updateAvailableOptions([]);
     }
   };
 
   // Actualizar las opciones disponibles en los selects basado en los datos filtrados
   const updateAvailableOptions = (filteredData) => {
     if (!filteredData || filteredData.length === 0) {
-      resetAvailableOptions();
+      // Cuando no hay datos filtrados, mantener estudiantes pero limpiar otros filtros
+      setAvailableStudents(students); // Siempre mantener todos los estudiantes disponibles
+      setAvailableCourses(courses);
+      setAvailableGrades(gradesList);
+      setAvailableSections(sections);
       return;
     }
 
@@ -165,10 +170,25 @@ const Grades = () => {
       ),
     ].filter(Boolean);
 
+    console.log("IDs únicos encontrados:", {
+      estudiantes: uniqueStudentIds,
+      cursos: uniqueCourseIds,
+      grados: uniqueGradeIds,
+      secciones: uniqueSectionIds,
+    });
+
     // Filtrar las listas completas basadas en los IDs disponibles
-    setAvailableStudents(
-      students.filter((student) => uniqueStudentIds.includes(student.usuarioId))
-    );
+    // Para estudiantes: si hay filtros activos, mostrar solo los relevantes, sino mostrar todos
+    if (filters.CursoId || filters.GradoId || filters.SeccionId) {
+      setAvailableStudents(
+        students.filter((student) =>
+          uniqueStudentIds.includes(student.usuarioId)
+        )
+      );
+    } else {
+      setAvailableStudents(students); // Mostrar todos los estudiantes si no hay otros filtros
+    }
+
     setAvailableCourses(
       courses.filter((course) => uniqueCourseIds.includes(course.cursoID))
     );
@@ -178,14 +198,6 @@ const Grades = () => {
     setAvailableSections(
       sections.filter((section) => uniqueSectionIds.includes(section.seccionID))
     );
-  };
-
-  // Resetear las opciones disponibles a todas
-  const resetAvailableOptions = () => {
-    setAvailableStudents(students);
-    setAvailableCourses(courses);
-    setAvailableGrades(gradesList);
-    setAvailableSections(sections);
   };
 
   const loadStudentGrades = async () => {
@@ -218,8 +230,6 @@ const Grades = () => {
       [name]: value || "",
     };
     setFilters(newFilters);
-
-    // No necesitamos llamar loadFilteredData aquí porque el useEffect se encarga
   };
 
   const handleSubmit = async (e) => {
@@ -287,8 +297,8 @@ const Grades = () => {
           <div className="filters-section">
             <h3>Filtrar Tareas Pendientes</h3>
             <p className="filter-info">
-              <strong>Nota:</strong> Al seleccionar cualquier filtro, se
-              mostrarán solo las opciones relevantes.
+              <strong>Nota:</strong> Los filtros se aplican automáticamente.
+              Puedes empezar seleccionando cualquier filtro.
             </p>
 
             <div className="form-row">
@@ -299,14 +309,20 @@ const Grades = () => {
                   value={filters.UsuarioId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Todos los estudiantes</option>
+                  <option value="">
+                    Todos los estudiantes ({availableStudents.length})
+                  </option>
                   {availableStudents.map((student) => (
                     <option key={student.usuarioId} value={student.usuarioId}>
                       {student.primerNombre} {student.primerApellido}
                     </option>
                   ))}
                 </select>
-                <small>Disponibles: {availableStudents.length}</small>
+                <small>
+                  {filters.UsuarioId
+                    ? "Estudiante seleccionado"
+                    : `${availableStudents.length} estudiantes disponibles`}
+                </small>
               </div>
               <div className="form-group">
                 <label>Curso:</label>
@@ -315,14 +331,20 @@ const Grades = () => {
                   value={filters.CursoId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Todos los cursos</option>
+                  <option value="">
+                    Todos los cursos ({availableCourses.length})
+                  </option>
                   {availableCourses.map((course) => (
                     <option key={course.cursoID} value={course.cursoID}>
                       {course.nombre}
                     </option>
                   ))}
                 </select>
-                <small>Disponibles: {availableCourses.length}</small>
+                <small>
+                  {filters.CursoId
+                    ? "Curso seleccionado"
+                    : `${availableCourses.length} cursos disponibles`}
+                </small>
               </div>
             </div>
             <div className="form-row">
@@ -333,14 +355,20 @@ const Grades = () => {
                   value={filters.GradoId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Todos los grados</option>
+                  <option value="">
+                    Todos los grados ({availableGrades.length})
+                  </option>
                   {availableGrades.map((grade) => (
                     <option key={grade.gradoID} value={grade.gradoID}>
                       {grade.nombreGrado}
                     </option>
                   ))}
                 </select>
-                <small>Disponibles: {availableGrades.length}</small>
+                <small>
+                  {filters.GradoId
+                    ? "Grado seleccionado"
+                    : `${availableGrades.length} grados disponibles`}
+                </small>
               </div>
               <div className="form-group">
                 <label>Sección:</label>
@@ -349,7 +377,9 @@ const Grades = () => {
                   value={filters.SeccionId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Todas las secciones</option>
+                  <option value="">
+                    Todas las secciones ({availableSections.length})
+                  </option>
                   {availableSections.map((section) => (
                     <option key={section.seccionID} value={section.seccionID}>
                       {section.nombreSeccion}{" "}
@@ -357,114 +387,140 @@ const Grades = () => {
                     </option>
                   ))}
                 </select>
-                <small>Disponibles: {availableSections.length}</small>
+                <small>
+                  {filters.SeccionId
+                    ? "Sección seleccionada"
+                    : `${availableSections.length} secciones disponibles`}
+                </small>
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                setFilters({
-                  UsuarioId: "",
-                  CursoId: "",
-                  GradoId: "",
-                  SeccionId: "",
-                });
-                resetAvailableOptions();
-              }}
-            >
-              Limpiar Todos los Filtros
-            </button>
+            <div className="filter-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setFilters({
+                    UsuarioId: "",
+                    CursoId: "",
+                    GradoId: "",
+                    SeccionId: "",
+                  });
+                  // Resetear a todas las opciones disponibles
+                  setAvailableStudents(students);
+                  setAvailableCourses(courses);
+                  setAvailableGrades(gradesList);
+                  setAvailableSections(sections);
+                }}
+              >
+                Limpiar Todos los Filtros
+              </button>
+
+              <button
+                type="button"
+                className="btn-info"
+                onClick={loadFilteredData}
+                disabled={loading}
+              >
+                {loading ? "Actualizando..." : "Actualizar Resultados"}
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Estudiante:</label>
-                <select
-                  name="UsuarioId"
-                  value={formData.UsuarioId}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Seleccionar estudiante</option>
-                  {availableStudents.map((student) => (
-                    <option key={student.usuarioId} value={student.usuarioId}>
-                      {student.primerNombre} {student.primerApellido}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Tarea:</label>
-                <select
-                  name="TareaId"
-                  value={formData.TareaId}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Seleccionar tarea</option>
-                  {grades
-                    .filter((task) => !task.calificada && !task.punteoObtenido)
-                    .map((task) => (
-                      <option
-                        key={task.tareaId || task.idTarea}
-                        value={task.tareaId || task.idTarea}
-                      >
-                        {task.titulo || task.tituloTarea} -{" "}
-                        {task.codigo || `ID: ${task.tareaId || task.idTarea}`}
+          {/* Formulario de calificación */}
+          <div className="grading-form">
+            <h3>Calificar Tarea</h3>
+            <form onSubmit={handleSubmit}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Estudiante:</label>
+                  <select
+                    name="UsuarioId"
+                    value={formData.UsuarioId}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Seleccionar estudiante</option>
+                    {availableStudents.map((student) => (
+                      <option key={student.usuarioId} value={student.usuarioId}>
+                        {student.primerNombre} {student.primerApellido}
                       </option>
                     ))}
-                </select>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Tarea:</label>
+                  <select
+                    name="TareaId"
+                    value={formData.TareaId}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Seleccionar tarea</option>
+                    {grades
+                      .filter(
+                        (task) => !task.calificada && !task.punteoObtenido
+                      )
+                      .map((task) => (
+                        <option
+                          key={task.tareaId || task.idTarea}
+                          value={task.tareaId || task.idTarea}
+                        >
+                          {task.titulo || task.tituloTarea} -{" "}
+                          {task.codigo || `ID: ${task.tareaId || task.idTarea}`}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <div className="form-row">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Calificación (0-100):</label>
+                  <input
+                    type="number"
+                    name="PunteoObtenido"
+                    value={formData.PunteoObtenido}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Estado:</label>
+                  <input
+                    type="text"
+                    value={getStatus(formData.PunteoObtenido)}
+                    readOnly
+                    className={`status-input ${getStatusClass(
+                      formData.PunteoObtenido
+                    )}`}
+                  />
+                </div>
+              </div>
+
               <div className="form-group">
-                <label>Calificación (0-100):</label>
-                <input
-                  type="number"
-                  name="PunteoObtenido"
-                  value={formData.PunteoObtenido}
+                <label>Observaciones:</label>
+                <textarea
+                  name="Observacion"
+                  value={formData.Observacion}
                   onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  required
-                />
+                  rows="3"
+                  placeholder="Observaciones adicionales..."
+                ></textarea>
               </div>
-              <div className="form-group">
-                <label>Estado:</label>
-                <input
-                  type="text"
-                  value={getStatus(formData.PunteoObtenido)}
-                  readOnly
-                  className={`status-input ${getStatusClass(
-                    formData.PunteoObtenido
-                  )}`}
-                />
-              </div>
-            </div>
 
-            <div className="form-group">
-              <label>Observaciones:</label>
-              <textarea
-                name="Observacion"
-                value={formData.Observacion}
-                onChange={handleInputChange}
-                rows="3"
-                placeholder="Observaciones adicionales..."
-              ></textarea>
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "Registrando..." : "Registrar Calificación"}
-            </button>
-          </form>
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? "Registrando..." : "Registrar Calificación"}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
+      {/* Lista de resultados */}
       <div className="grades-list">
         <h2>
           {isStudent
