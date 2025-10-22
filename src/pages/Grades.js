@@ -23,14 +23,13 @@ const Grades = () => {
   });
 
   const [filters, setFilters] = useState({
-    // El API espera estos nombres exactos según el Postman
     UsuarioId: "",
     CursoId: "",
     GradoId: "",
     SeccionId: "",
   });
 
-  const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5; // Profesor, Admin o Coordinador
+  const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5;
   const isStudent = user?.rolID === 3;
   const pageTitle = isStudent
     ? "Mis Calificaciones"
@@ -41,10 +40,15 @@ const Grades = () => {
     loadInitialData();
     if (isStudent) {
       loadStudentGrades();
-    } else {
-      loadPendingTasks();
     }
   }, []);
+
+  // Cargar tareas pendientes cuando cambien los filtros
+  useEffect(() => {
+    if (!isStudent) {
+      loadPendingTasks();
+    }
+  }, [filters]);
 
   const loadInitialData = async () => {
     try {
@@ -52,23 +56,13 @@ const Grades = () => {
       const studentsResponse = await callApi(() =>
         authService.getUsers({ RolID: 3 })
       );
-      if (
-        studentsResponse &&
-        (studentsResponse.success ||
-          Array.isArray(studentsResponse.data) ||
-          Array.isArray(studentsResponse))
-      ) {
+      if (studentsResponse) {
         setStudents(studentsResponse.data || studentsResponse || []);
       }
 
       // Cargar cursos
       const coursesResponse = await callApi(() => courseService.getCourses({}));
-      if (
-        coursesResponse &&
-        (coursesResponse.success ||
-          Array.isArray(coursesResponse.data) ||
-          Array.isArray(coursesResponse))
-      ) {
+      if (coursesResponse) {
         setCourses(coursesResponse.data || coursesResponse || []);
       }
 
@@ -76,25 +70,15 @@ const Grades = () => {
       const gradesResponse = await callApi(() =>
         gradeSectionService.getGrades({})
       );
-      if (
-        gradesResponse &&
-        (gradesResponse.success ||
-          Array.isArray(gradesResponse.data) ||
-          Array.isArray(gradesResponse))
-      ) {
+      if (gradesResponse) {
         setGradesList(gradesResponse.data || gradesResponse || []);
       }
 
-      // Cargar secciones
+      // Cargar secciones inicialmente (todas)
       const sectionsResponse = await callApi(() =>
         gradeSectionService.getSections({})
       );
-      if (
-        sectionsResponse &&
-        (sectionsResponse.success ||
-          Array.isArray(sectionsResponse.data) ||
-          Array.isArray(sectionsResponse))
-      ) {
+      if (sectionsResponse) {
         setSections(sectionsResponse.data || sectionsResponse || []);
       }
     } catch (err) {
@@ -102,18 +86,52 @@ const Grades = () => {
     }
   };
 
+  // Cuando cambie el GradoId, cargar las secciones de ese grado
+  const handleGradoChange = async (gradoId) => {
+    if (gradoId) {
+      try {
+        const sectionsResponse = await callApi(() =>
+          gradeSectionService.getSections({ GradoID: parseInt(gradoId) })
+        );
+        if (sectionsResponse) {
+          setSections(sectionsResponse.data || sectionsResponse || []);
+        }
+      } catch (err) {
+        console.error("Error cargando secciones del grado:", err);
+        setSections([]);
+      }
+    } else {
+      // Si no hay grado seleccionado, cargar todas las secciones
+      const sectionsResponse = await callApi(() =>
+        gradeSectionService.getSections({})
+      );
+      if (sectionsResponse) {
+        setSections(sectionsResponse.data || sectionsResponse || []);
+      }
+    }
+  };
+
+  // Cuando cambie el filtro de estudiante, cargar sus datos específicos si es necesario
+  const handleEstudianteChange = async (usuarioId) => {
+    if (usuarioId) {
+      // Podrías cargar información específica del estudiante aquí si es necesario
+      console.log("Estudiante seleccionado:", usuarioId);
+    }
+  };
+
+  // Cuando cambie el filtro de curso, podrías cargar información relacionada
+  const handleCursoChange = async (cursoId) => {
+    if (cursoId) {
+      console.log("Curso seleccionado:", cursoId);
+    }
+  };
+
   const loadStudentGrades = async () => {
     try {
-      // Para estudiantes, enviar solo su UsuarioId
       const response = await callApi(() =>
         gradingService.filterGrades({ UsuarioId: user?.usuarioId })
       );
-      if (
-        response &&
-        (response.success ||
-          Array.isArray(response.data) ||
-          Array.isArray(response))
-      ) {
+      if (response) {
         setGrades(response.data || response || []);
       }
     } catch (err) {
@@ -124,8 +142,6 @@ const Grades = () => {
 
   const loadPendingTasks = async () => {
     try {
-      console.log("Enviando filtros:", filters);
-
       // Limpiar filtros vacíos antes de enviar
       const cleanFilters = Object.fromEntries(
         Object.entries(filters).filter(
@@ -133,18 +149,11 @@ const Grades = () => {
         )
       );
 
-      console.log("Filtros limpios:", cleanFilters);
-
       const response = await callApi(() =>
         gradingService.filterGrades(cleanFilters)
       );
 
-      if (
-        response &&
-        (response.success ||
-          Array.isArray(response.data) ||
-          Array.isArray(response))
-      ) {
+      if (response) {
         setGrades(response.data || response || []);
       } else {
         setGrades([]);
@@ -164,45 +173,27 @@ const Grades = () => {
     clearError();
   };
 
-  const handleFilterChange = (e) => {
+  const handleFilterChange = async (e) => {
     const { name, value } = e.target;
     const newFilters = {
       ...filters,
-      [name]: value || "", // Asegurar que sea string vacío en lugar de null/undefined
+      [name]: value || "",
     };
     setFilters(newFilters);
 
-    // Recargar tareas pendientes cuando cambian los filtros
-    if (!isStudent) {
-      setTimeout(() => loadPendingTasksWithFilters(newFilters), 100);
-    }
-  };
-
-  const loadPendingTasksWithFilters = async (filterData) => {
-    try {
-      // Limpiar filtros vacíos
-      const cleanFilters = Object.fromEntries(
-        Object.entries(filterData).filter(
-          ([_, value]) => value !== "" && value != null
-        )
-      );
-
-      const response = await callApi(() =>
-        gradingService.filterGrades(cleanFilters)
-      );
-      if (
-        response &&
-        (response.success ||
-          Array.isArray(response.data) ||
-          Array.isArray(response))
-      ) {
-        setGrades(response.data || response || []);
-      } else {
-        setGrades([]);
-      }
-    } catch (err) {
-      console.error("Error cargando tareas con filtros:", err);
-      setGrades([]);
+    // Llamar endpoints específicos cuando cambien los selects
+    switch (name) {
+      case "GradoId":
+        await handleGradoChange(value);
+        break;
+      case "UsuarioId":
+        await handleEstudianteChange(value);
+        break;
+      case "CursoId":
+        await handleCursoChange(value);
+        break;
+      default:
+        break;
     }
   };
 
@@ -328,7 +319,8 @@ const Grades = () => {
                   <option value="">Todas las secciones</option>
                   {sections.map((section) => (
                     <option key={section.seccionID} value={section.seccionID}>
-                      {section.nombreSeccion}
+                      {section.nombreSeccion}{" "}
+                      {section.nombreGrado ? `- ${section.nombreGrado}` : ""}
                     </option>
                   ))}
                 </select>
@@ -344,7 +336,13 @@ const Grades = () => {
                   GradoId: "",
                   SeccionId: "",
                 });
-                setTimeout(() => loadPendingTasks(), 100);
+                // Resetear también las secciones a todas
+                const sectionsResponse = callApi(() =>
+                  gradeSectionService.getSections({})
+                );
+                if (sectionsResponse) {
+                  setSections(sectionsResponse.data || sectionsResponse || []);
+                }
               }}
             >
               Limpiar Filtros
@@ -379,7 +377,7 @@ const Grades = () => {
                 >
                   <option value="">Seleccionar tarea</option>
                   {grades
-                    .filter((task) => !task.calificada && !task.punteoObtenido) // Solo tareas no calificadas
+                    .filter((task) => !task.calificada && !task.punteoObtenido)
                     .map((task) => (
                       <option key={task.tareaId} value={task.tareaId}>
                         {task.titulo} - {task.codigo || `ID: ${task.tareaId}`}

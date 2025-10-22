@@ -105,12 +105,34 @@ const Tasks = () => {
     }
   };
 
-  const handleInputChange = (e) => {
+  //Nueva funcion para filtrar secciones por grado
+  const handleGradoChange = async (gradoId) => {
+    if (gradoId) {
+      try {
+        const sectionsResponse = await callApi(() =>
+          gradeSectionService.getSections({ GradoID: parseInt(gradoId) })
+        );
+        if (sectionsResponse) {
+          setSections(sectionsResponse.data || sectionsResponse || []);
+        }
+      } catch (err) {
+        console.error("Error cargando secciones del grado:", err);
+        setSections([]);
+      }
+    }
+  };
+
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
+
+    if (name === "GradoID" && value) {
+      await handleGradoChange(value);
+    }
+
     clearError();
   };
 
