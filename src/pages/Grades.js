@@ -23,6 +23,7 @@ const Grades = () => {
   });
 
   const [filters, setFilters] = useState({
+    // El API espera estos nombres exactos según el Postman
     UsuarioId: "",
     CursoId: "",
     GradoId: "",
@@ -51,30 +52,50 @@ const Grades = () => {
       const studentsResponse = await callApi(() =>
         authService.getUsers({ RolID: 3 })
       );
-      if (studentsResponse && studentsResponse.success) {
-        setStudents(studentsResponse.data || []);
+      if (
+        studentsResponse &&
+        (studentsResponse.success ||
+          Array.isArray(studentsResponse.data) ||
+          Array.isArray(studentsResponse))
+      ) {
+        setStudents(studentsResponse.data || studentsResponse || []);
       }
 
       // Cargar cursos
-      const coursesResponse = await callApi(() => courseService.getCourses());
-      if (coursesResponse && coursesResponse.success) {
-        setCourses(coursesResponse.data || []);
+      const coursesResponse = await callApi(() => courseService.getCourses({}));
+      if (
+        coursesResponse &&
+        (coursesResponse.success ||
+          Array.isArray(coursesResponse.data) ||
+          Array.isArray(coursesResponse))
+      ) {
+        setCourses(coursesResponse.data || coursesResponse || []);
       }
 
       // Cargar grados
       const gradesResponse = await callApi(() =>
-        gradeSectionService.getGrades()
+        gradeSectionService.getGrades({})
       );
-      if (gradesResponse && gradesResponse.success) {
-        setGradesList(gradesResponse.data || []);
+      if (
+        gradesResponse &&
+        (gradesResponse.success ||
+          Array.isArray(gradesResponse.data) ||
+          Array.isArray(gradesResponse))
+      ) {
+        setGradesList(gradesResponse.data || gradesResponse || []);
       }
 
       // Cargar secciones
       const sectionsResponse = await callApi(() =>
-        gradeSectionService.getSections()
+        gradeSectionService.getSections({})
       );
-      if (sectionsResponse && sectionsResponse.success) {
-        setSections(sectionsResponse.data || []);
+      if (
+        sectionsResponse &&
+        (sectionsResponse.success ||
+          Array.isArray(sectionsResponse.data) ||
+          Array.isArray(sectionsResponse))
+      ) {
+        setSections(sectionsResponse.data || sectionsResponse || []);
       }
     } catch (err) {
       console.error("Error cargando datos iniciales:", err);
@@ -83,27 +104,54 @@ const Grades = () => {
 
   const loadStudentGrades = async () => {
     try {
+      // Para estudiantes, enviar solo su UsuarioId
       const response = await callApi(() =>
         gradingService.filterGrades({ UsuarioId: user?.usuarioId })
       );
-      if (response && response.success) {
-        setGrades(response.data || []);
+      if (
+        response &&
+        (response.success ||
+          Array.isArray(response.data) ||
+          Array.isArray(response))
+      ) {
+        setGrades(response.data || response || []);
       }
     } catch (err) {
-      console.error("Error cargando calificaciones:", err);
+      console.error("Error cargando calificaciones del estudiante:", err);
+      setGrades([]);
     }
   };
 
   const loadPendingTasks = async () => {
     try {
-      const response = await callApi(() =>
-        gradingService.filterGrades(filters)
+      console.log("Enviando filtros:", filters);
+
+      // Limpiar filtros vacíos antes de enviar
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(
+          ([_, value]) => value !== "" && value != null
+        )
       );
-      if (response && response.success) {
-        setGrades(response.data || []);
+
+      console.log("Filtros limpios:", cleanFilters);
+
+      const response = await callApi(() =>
+        gradingService.filterGrades(cleanFilters)
+      );
+
+      if (
+        response &&
+        (response.success ||
+          Array.isArray(response.data) ||
+          Array.isArray(response))
+      ) {
+        setGrades(response.data || response || []);
+      } else {
+        setGrades([]);
       }
     } catch (err) {
       console.error("Error cargando tareas pendientes:", err);
+      setGrades([]);
     }
   };
 
@@ -120,26 +168,41 @@ const Grades = () => {
     const { name, value } = e.target;
     const newFilters = {
       ...filters,
-      [name]: value,
+      [name]: value || "", // Asegurar que sea string vacío en lugar de null/undefined
     };
     setFilters(newFilters);
 
     // Recargar tareas pendientes cuando cambian los filtros
     if (!isStudent) {
-      loadPendingTasksWithFilters(newFilters);
+      setTimeout(() => loadPendingTasksWithFilters(newFilters), 100);
     }
   };
 
   const loadPendingTasksWithFilters = async (filterData) => {
     try {
-      const response = await callApi(() =>
-        gradingService.filterGrades(filterData)
+      // Limpiar filtros vacíos
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filterData).filter(
+          ([_, value]) => value !== "" && value != null
+        )
       );
-      if (response && response.success) {
-        setGrades(response.data || []);
+
+      const response = await callApi(() =>
+        gradingService.filterGrades(cleanFilters)
+      );
+      if (
+        response &&
+        (response.success ||
+          Array.isArray(response.data) ||
+          Array.isArray(response))
+      ) {
+        setGrades(response.data || response || []);
+      } else {
+        setGrades([]);
       }
     } catch (err) {
-      console.error("Error cargando tareas:", err);
+      console.error("Error cargando tareas con filtros:", err);
+      setGrades([]);
     }
   };
 
@@ -148,8 +211,15 @@ const Grades = () => {
     if (!canEdit) return;
 
     try {
+      const gradeData = {
+        UsuarioId: parseInt(formData.UsuarioId),
+        TareaId: parseInt(formData.TareaId),
+        PunteoObtenido: parseFloat(formData.PunteoObtenido),
+        Observacion: formData.Observacion || "",
+      };
+
       await callApi(
-        () => gradingService.gradeTask(formData),
+        () => gradingService.gradeTask(gradeData),
         "Calificación registrada exitosamente"
       );
 
@@ -170,13 +240,15 @@ const Grades = () => {
 
   // Función para calcular el estado (Aprobado/Reprobado)
   const getStatus = (calificacion) => {
-    const nota = parseInt(calificacion);
+    if (calificacion === null || calificacion === undefined) return "Pendiente";
+    const nota = parseFloat(calificacion);
     return nota >= 61 ? "Aprobado" : "Reprobado";
   };
 
   // Función para obtener la clase CSS según el estado
   const getStatusClass = (calificacion) => {
-    const nota = parseInt(calificacion);
+    if (calificacion === null || calificacion === undefined) return "pendiente";
+    const nota = parseFloat(calificacion);
     return nota >= 61 ? "aprobado" : "reprobado";
   };
 
@@ -184,7 +256,11 @@ const Grades = () => {
     <div className="grades-container">
       <h1>{pageTitle}</h1>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       {/* Solo profesores/admin pueden calificar */}
       {canEdit && (
@@ -226,6 +302,53 @@ const Grades = () => {
                 </select>
               </div>
             </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Grado:</label>
+                <select
+                  name="GradoId"
+                  value={filters.GradoId}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">Todos los grados</option>
+                  {gradesList.map((grade) => (
+                    <option key={grade.gradoID} value={grade.gradoID}>
+                      {grade.nombreGrado}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Sección:</label>
+                <select
+                  name="SeccionId"
+                  value={filters.SeccionId}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">Todas las secciones</option>
+                  {sections.map((section) => (
+                    <option key={section.seccionID} value={section.seccionID}>
+                      {section.nombreSeccion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setFilters({
+                  UsuarioId: "",
+                  CursoId: "",
+                  GradoId: "",
+                  SeccionId: "",
+                });
+                setTimeout(() => loadPendingTasks(), 100);
+              }}
+            >
+              Limpiar Filtros
+            </button>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -256,10 +379,10 @@ const Grades = () => {
                 >
                   <option value="">Seleccionar tarea</option>
                   {grades
-                    .filter((task) => !task.calificada) // Solo tareas no calificadas
+                    .filter((task) => !task.calificada && !task.punteoObtenido) // Solo tareas no calificadas
                     .map((task) => (
                       <option key={task.tareaId} value={task.tareaId}>
-                        {task.titulo} - {task.codigo}
+                        {task.titulo} - {task.codigo || `ID: ${task.tareaId}`}
                       </option>
                     ))}
                 </select>
@@ -276,6 +399,7 @@ const Grades = () => {
                   onChange={handleInputChange}
                   min="0"
                   max="100"
+                  step="0.1"
                   required
                 />
               </div>
@@ -283,17 +407,11 @@ const Grades = () => {
                 <label>Estado:</label>
                 <input
                   type="text"
-                  value={
-                    formData.PunteoObtenido
-                      ? getStatus(formData.PunteoObtenido)
-                      : ""
-                  }
+                  value={getStatus(formData.PunteoObtenido)}
                   readOnly
-                  className={`status-input ${
+                  className={`status-input ${getStatusClass(
                     formData.PunteoObtenido
-                      ? getStatusClass(formData.PunteoObtenido)
-                      : ""
-                  }`}
+                  )}`}
                 />
               </div>
             </div>
@@ -346,8 +464,8 @@ const Grades = () => {
                 </tr>
               </thead>
               <tbody>
-                {grades.map((grade) => (
-                  <tr key={grade.tareaId || grade.calificacionId}>
+                {grades.map((grade, index) => (
+                  <tr key={grade.tareaId || grade.calificacionId || index}>
                     {!isStudent && (
                       <td>
                         {grade.primerNombre} {grade.primerApellido}
@@ -355,7 +473,11 @@ const Grades = () => {
                     )}
                     <td>{grade.titulo}</td>
                     <td>{grade.nombreCurso}</td>
-                    <td>{new Date(grade.fechaEntrega).toLocaleDateString()}</td>
+                    <td>
+                      {grade.fechaEntrega
+                        ? new Date(grade.fechaEntrega).toLocaleDateString()
+                        : "N/A"}
+                    </td>
                     <td>
                       {grade.punteoObtenido || grade.punteoObtenido === 0
                         ? grade.punteoObtenido
@@ -363,18 +485,14 @@ const Grades = () => {
                     </td>
                     <td>
                       <span
-                        className={`status-badge ${
-                          grade.punteoObtenido || grade.punteoObtenido === 0
-                            ? getStatusClass(grade.punteoObtenido)
-                            : "pendiente"
-                        }`}
+                        className={`status-badge ${getStatusClass(
+                          grade.punteoObtenido
+                        )}`}
                       >
-                        {grade.punteoObtenido || grade.punteoObtenido === 0
-                          ? getStatus(grade.punteoObtenido)
-                          : "Pendiente"}
+                        {getStatus(grade.punteoObtenido)}
                       </span>
                     </td>
-                    {isStudent && <td>{grade.observacion}</td>}
+                    {isStudent && <td>{grade.observacion || "-"}</td>}
                   </tr>
                 ))}
               </tbody>

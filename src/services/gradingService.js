@@ -1,12 +1,18 @@
 import api, { API_ENDPOINTS } from "./api";
 
 export const gradingService = {
-  // Filtrar calificaciones
+  // Filtrar calificaciones - el endpoint espera JSON vacío o con filtros específicos
   async filterGrades(filters = {}) {
     try {
+      console.log(
+        "Enviando filtros a Calificaciones/FiltroCalificaciones:",
+        filters
+      );
       const response = await api.post(API_ENDPOINTS.FILTER_GRADES, filters);
+      console.log("Respuesta de filtro calificaciones:", response);
       return response;
     } catch (error) {
+      console.error("Error en filterGrades:", error);
       throw new Error(error.mensaje || "Error al filtrar calificaciones");
     }
   },
@@ -14,14 +20,11 @@ export const gradingService = {
   // Calificar tarea
   async gradeTask(gradeData) {
     try {
-      const response = await api.post(API_ENDPOINTS.GRADE_TASK, {
-        UsuarioId: parseInt(gradeData.UsuarioId),
-        TareaId: parseInt(gradeData.TareaId),
-        PunteoObtenido: parseFloat(gradeData.PunteoObtenido),
-        Observacion: gradeData.Observacion,
-      });
+      console.log("Enviando calificación:", gradeData);
+      const response = await api.post(API_ENDPOINTS.GRADE_TASK, gradeData);
       return response;
     } catch (error) {
+      console.error("Error en gradeTask:", error);
       throw new Error(error.mensaje || "Error al calificar tarea");
     }
   },
