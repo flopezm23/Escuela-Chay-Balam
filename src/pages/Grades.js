@@ -46,7 +46,6 @@ const Grades = () => {
     if (isStudent) {
       loadStudentGrades();
     } else {
-      // Cargar datos iniciales sin filtros
       loadFilteredData();
     }
   }, []);
@@ -60,14 +59,32 @@ const Grades = () => {
 
   const loadInitialData = async () => {
     try {
+      console.log("Cargando datos iniciales...");
+
       // Cargar todos los estudiantes (solo rol 3 - Alumnos)
       const studentsResponse = await callApi(() =>
         authService.getUsers({ RolID: 3 })
       );
+      console.log("Respuesta de estudiantes:", studentsResponse);
+
       if (studentsResponse) {
-        const allStudents = studentsResponse.data || studentsResponse || [];
+        let allStudents = [];
+
+        // Manejar diferentes formatos de respuesta
+        if (studentsResponse.success && Array.isArray(studentsResponse.data)) {
+          allStudents = studentsResponse.data;
+        } else if (Array.isArray(studentsResponse)) {
+          allStudents = studentsResponse;
+        } else if (
+          studentsResponse.data &&
+          Array.isArray(studentsResponse.data)
+        ) {
+          allStudents = studentsResponse.data;
+        }
+
+        console.log("Estudiantes procesados:", allStudents);
         setStudents(allStudents);
-        setAvailableStudents(allStudents); // Inicialmente mostrar todos los estudiantes
+        setAvailableStudents(allStudents);
       }
 
       // Cargar todos los cursos
@@ -120,14 +137,13 @@ const Grades = () => {
 
       if (response) {
         const filteredData = response.data || response || [];
+        console.log("Datos filtrados recibidos:", filteredData);
         setGrades(filteredData);
-        console.log("Datos filtrados cargados:", filteredData);
 
         // Actualizar las listas disponibles basadas en los datos filtrados
         updateAvailableOptions(filteredData);
       } else {
         setGrades([]);
-        // No resetear completamente, mantener estudiantes disponibles
         updateAvailableOptions([]);
       }
     } catch (err) {
@@ -139,9 +155,11 @@ const Grades = () => {
 
   // Actualizar las opciones disponibles en los selects basado en los datos filtrados
   const updateAvailableOptions = (filteredData) => {
+    console.log("Actualizando opciones disponibles con:", filteredData);
+
     if (!filteredData || filteredData.length === 0) {
-      // Cuando no hay datos filtrados, mantener estudiantes pero limpiar otros filtros
-      setAvailableStudents(students); // Siempre mantener todos los estudiantes disponibles
+      console.log("No hay datos filtrados, mostrando todas las opciones");
+      setAvailableStudents(students);
       setAvailableCourses(courses);
       setAvailableGrades(gradesList);
       setAvailableSections(sections);
@@ -150,18 +168,23 @@ const Grades = () => {
 
     // Extraer IDs únicos de los datos filtrados
     const uniqueStudentIds = [
-      ...new Set(filteredData.map((item) => item.usuarioId || item.UsuarioId)),
+      ...new Set(
+        filteredData.map((item) => item.usuarioId || item.UsuarioId || item.id)
+      ),
     ].filter(Boolean);
+
     const uniqueCourseIds = [
       ...new Set(
         filteredData.map((item) => item.cursoId || item.cursoID || item.CursoId)
       ),
     ].filter(Boolean);
+
     const uniqueGradeIds = [
       ...new Set(
         filteredData.map((item) => item.gradoId || item.gradoID || item.GradoId)
       ),
     ].filter(Boolean);
+
     const uniqueSectionIds = [
       ...new Set(
         filteredData.map(
@@ -177,27 +200,32 @@ const Grades = () => {
       secciones: uniqueSectionIds,
     });
 
-    // Filtrar las listas completas basadas en los IDs disponibles
-    // Para estudiantes: si hay filtros activos, mostrar solo los relevantes, sino mostrar todos
+    // Para estudiantes: mostrar todos inicialmente, filtrar solo si hay otros filtros activos
     if (filters.CursoId || filters.GradoId || filters.SeccionId) {
-      setAvailableStudents(
-        students.filter((student) =>
-          uniqueStudentIds.includes(student.usuarioId)
-        )
+      const filteredStudents = students.filter((student) =>
+        uniqueStudentIds.includes(student.usuarioId)
       );
+      console.log("Estudiantes filtrados:", filteredStudents);
+      setAvailableStudents(filteredStudents);
     } else {
-      setAvailableStudents(students); // Mostrar todos los estudiantes si no hay otros filtros
+      console.log("Mostrando todos los estudiantes:", students);
+      setAvailableStudents(students);
     }
 
-    setAvailableCourses(
-      courses.filter((course) => uniqueCourseIds.includes(course.cursoID))
+    // Filtrar otros selects
+    const filteredCourses = courses.filter((course) =>
+      uniqueCourseIds.includes(course.cursoID)
     );
-    setAvailableGrades(
-      gradesList.filter((grade) => uniqueGradeIds.includes(grade.gradoID))
+    const filteredGrades = gradesList.filter((grade) =>
+      uniqueGradeIds.includes(grade.gradoID)
     );
-    setAvailableSections(
-      sections.filter((section) => uniqueSectionIds.includes(section.seccionID))
+    const filteredSections = sections.filter((section) =>
+      uniqueSectionIds.includes(section.seccionID)
     );
+
+    setAvailableCourses(filteredCourses);
+    setAvailableGrades(filteredGrades);
+    setAvailableSections(filteredSections);
   };
 
   const loadStudentGrades = async () => {
@@ -278,6 +306,24 @@ const Grades = () => {
     return nota >= 61 ? "aprobado" : "reprobado";
   };
 
+  // Función auxiliar para obtener nombre completo del estudiante
+  const getStudentName = (student) => {
+    if (!student) return "Nombre no disponible";
+
+    // Diferentes formatos posibles de estudiantes
+    if (student.primerNombre && student.primerApellido) {
+      return `${student.primerNombre} ${student.primerApellido}`;
+    } else if (student.nombre && student.apellido) {
+      return `${student.nombre} ${student.apellido}`;
+    } else if (student.estudiante) {
+      return student.estudiante;
+    } else if (student.email) {
+      return student.email;
+    } else {
+      return `Estudiante ID: ${student.usuarioId || student.id}`;
+    }
+  };
+
   return (
     <div className="grades-container">
       <h1>{pageTitle}</h1>
@@ -298,7 +344,6 @@ const Grades = () => {
             <h3>Filtrar Tareas Pendientes</h3>
             <p className="filter-info">
               <strong>Nota:</strong> Los filtros se aplican automáticamente.
-              Puedes empezar seleccionando cualquier filtro.
             </p>
 
             <div className="form-row">
@@ -312,11 +357,20 @@ const Grades = () => {
                   <option value="">
                     Todos los estudiantes ({availableStudents.length})
                   </option>
-                  {availableStudents.map((student) => (
-                    <option key={student.usuarioId} value={student.usuarioId}>
-                      {student.primerNombre} {student.primerApellido}
+                  {availableStudents.length > 0 ? (
+                    availableStudents.map((student) => (
+                      <option
+                        key={student.usuarioId || student.id}
+                        value={student.usuarioId || student.id}
+                      >
+                        {getStudentName(student)}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      No hay estudiantes disponibles
                     </option>
-                  ))}
+                  )}
                 </select>
                 <small>
                   {filters.UsuarioId
@@ -406,7 +460,6 @@ const Grades = () => {
                     GradoId: "",
                     SeccionId: "",
                   });
-                  // Resetear a todas las opciones disponibles
                   setAvailableStudents(students);
                   setAvailableCourses(courses);
                   setAvailableGrades(gradesList);
@@ -414,15 +467,6 @@ const Grades = () => {
                 }}
               >
                 Limpiar Todos los Filtros
-              </button>
-
-              <button
-                type="button"
-                className="btn-info"
-                onClick={loadFilteredData}
-                disabled={loading}
-              >
-                {loading ? "Actualizando..." : "Actualizar Resultados"}
               </button>
             </div>
           </div>
@@ -441,11 +485,20 @@ const Grades = () => {
                     required
                   >
                     <option value="">Seleccionar estudiante</option>
-                    {availableStudents.map((student) => (
-                      <option key={student.usuarioId} value={student.usuarioId}>
-                        {student.primerNombre} {student.primerApellido}
+                    {availableStudents.length > 0 ? (
+                      availableStudents.map((student) => (
+                        <option
+                          key={student.usuarioId || student.id}
+                          value={student.usuarioId || student.id}
+                        >
+                          {getStudentName(student)}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No hay estudiantes disponibles
                       </option>
-                    ))}
+                    )}
                   </select>
                 </div>
                 <div className="form-group">
