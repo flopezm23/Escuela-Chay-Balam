@@ -29,6 +29,8 @@ const Grades = () => {
     SeccionId: "",
   });
 
+  const [selectedStudentData, setSelectedStudentData] = useState(null);
+
   const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5;
   const isStudent = user?.rolID === 3;
   const pageTitle = isStudent
@@ -86,6 +88,63 @@ const Grades = () => {
     }
   };
 
+  // Cuando se selecciona un estudiante, cargar sus datos y llenar automáticamente los filtros
+  const handleEstudianteChange = async (usuarioId) => {
+    if (usuarioId) {
+      try {
+        console.log("Cargando datos del estudiante:", usuarioId);
+
+        // Llamar al endpoint con el UsuarioId para obtener todos los datos del estudiante
+        const studentDataResponse = await callApi(() =>
+          gradingService.filterGrades({ UsuarioId: parseInt(usuarioId) })
+        );
+
+        console.log("Datos del estudiante:", studentDataResponse);
+
+        if (studentDataResponse) {
+          const studentData = studentDataResponse.data || studentDataResponse;
+          setSelectedStudentData(studentData);
+
+          // Si es un array, tomar el primer elemento (o procesar según la estructura)
+          if (Array.isArray(studentData) && studentData.length > 0) {
+            const firstRecord = studentData[0];
+
+            // Actualizar automáticamente los filtros con los datos del estudiante
+            setFilters((prev) => ({
+              ...prev,
+              UsuarioId: usuarioId,
+              CursoId: firstRecord.cursoId || firstRecord.cursoID || "",
+              GradoId: firstRecord.gradoId || firstRecord.gradoID || "",
+              SeccionId: firstRecord.seccionId || firstRecord.seccionID || "",
+            }));
+          } else if (studentData && typeof studentData === "object") {
+            // Si es un objeto individual
+            setFilters((prev) => ({
+              ...prev,
+              UsuarioId: usuarioId,
+              CursoId: studentData.cursoId || studentData.cursoID || "",
+              GradoId: studentData.gradoId || studentData.gradoID || "",
+              SeccionId: studentData.seccionId || studentData.seccionID || "",
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error cargando datos del estudiante:", err);
+        setSelectedStudentData(null);
+      }
+    } else {
+      // Si no hay estudiante seleccionado, limpiar los datos
+      setSelectedStudentData(null);
+      setFilters((prev) => ({
+        ...prev,
+        UsuarioId: "",
+        CursoId: "",
+        GradoId: "",
+        SeccionId: "",
+      }));
+    }
+  };
+
   // Cuando cambie el GradoId, cargar las secciones de ese grado
   const handleGradoChange = async (gradoId) => {
     if (gradoId) {
@@ -108,21 +167,6 @@ const Grades = () => {
       if (sectionsResponse) {
         setSections(sectionsResponse.data || sectionsResponse || []);
       }
-    }
-  };
-
-  // Cuando cambie el filtro de estudiante, cargar sus datos específicos si es necesario
-  const handleEstudianteChange = async (usuarioId) => {
-    if (usuarioId) {
-      // Podrías cargar información específica del estudiante aquí si es necesario
-      console.log("Estudiante seleccionado:", usuarioId);
-    }
-  };
-
-  // Cuando cambie el filtro de curso, podrías cargar información relacionada
-  const handleCursoChange = async (cursoId) => {
-    if (cursoId) {
-      console.log("Curso seleccionado:", cursoId);
     }
   };
 
@@ -149,12 +193,15 @@ const Grades = () => {
         )
       );
 
+      console.log("Cargando tareas con filtros:", cleanFilters);
+
       const response = await callApi(() =>
         gradingService.filterGrades(cleanFilters)
       );
 
       if (response) {
         setGrades(response.data || response || []);
+        console.log("Tareas cargadas:", response.data || response);
       } else {
         setGrades([]);
       }
@@ -183,14 +230,11 @@ const Grades = () => {
 
     // Llamar endpoints específicos cuando cambien los selects
     switch (name) {
-      case "GradoId":
-        await handleGradoChange(value);
-        break;
       case "UsuarioId":
         await handleEstudianteChange(value);
         break;
-      case "CursoId":
-        await handleCursoChange(value);
+      case "GradoId":
+        await handleGradoChange(value);
         break;
       default:
         break;
@@ -269,7 +313,7 @@ const Grades = () => {
                   value={filters.UsuarioId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Todos los estudiantes</option>
+                  <option value="">Seleccionar estudiante</option>
                   {students.map((student) => (
                     <option key={student.usuarioId} value={student.usuarioId}>
                       {student.primerNombre} {student.primerApellido}
@@ -283,13 +327,22 @@ const Grades = () => {
                   name="CursoId"
                   value={filters.CursoId}
                   onChange={handleFilterChange}
+                  disabled={!filters.UsuarioId} // Deshabilitar hasta que se seleccione estudiante
                 >
-                  <option value="">Todos los cursos</option>
-                  {courses.map((course) => (
-                    <option key={course.cursoID} value={course.cursoID}>
-                      {course.nombre}
-                    </option>
-                  ))}
+                  <option value="">
+                    {filters.UsuarioId
+                      ? "Cargando..."
+                      : "Seleccione estudiante primero"}
+                  </option>
+                  {filters.CursoId &&
+                    courses.find((c) => c.cursoID == filters.CursoId) && (
+                      <option value={filters.CursoId}>
+                        {
+                          courses.find((c) => c.cursoID == filters.CursoId)
+                            ?.nombre
+                        }
+                      </option>
+                    )}
                 </select>
               </div>
             </div>
@@ -300,13 +353,22 @@ const Grades = () => {
                   name="GradoId"
                   value={filters.GradoId}
                   onChange={handleFilterChange}
+                  disabled={!filters.UsuarioId}
                 >
-                  <option value="">Todos los grados</option>
-                  {gradesList.map((grade) => (
-                    <option key={grade.gradoID} value={grade.gradoID}>
-                      {grade.nombreGrado}
-                    </option>
-                  ))}
+                  <option value="">
+                    {filters.UsuarioId
+                      ? "Cargando..."
+                      : "Seleccione estudiante primero"}
+                  </option>
+                  {filters.GradoId &&
+                    gradesList.find((g) => g.gradoID == filters.GradoId) && (
+                      <option value={filters.GradoId}>
+                        {
+                          gradesList.find((g) => g.gradoID == filters.GradoId)
+                            ?.nombreGrado
+                        }
+                      </option>
+                    )}
                 </select>
               </div>
               <div className="form-group">
@@ -315,17 +377,62 @@ const Grades = () => {
                   name="SeccionId"
                   value={filters.SeccionId}
                   onChange={handleFilterChange}
+                  disabled={!filters.UsuarioId}
                 >
-                  <option value="">Todas las secciones</option>
-                  {sections.map((section) => (
-                    <option key={section.seccionID} value={section.seccionID}>
-                      {section.nombreSeccion}{" "}
-                      {section.nombreGrado ? `- ${section.nombreGrado}` : ""}
-                    </option>
-                  ))}
+                  <option value="">
+                    {filters.UsuarioId
+                      ? "Cargando..."
+                      : "Seleccione estudiante primero"}
+                  </option>
+                  {filters.SeccionId &&
+                    sections.find((s) => s.seccionID == filters.SeccionId) && (
+                      <option value={filters.SeccionId}>
+                        {
+                          sections.find((s) => s.seccionID == filters.SeccionId)
+                            ?.nombreSeccion
+                        }
+                      </option>
+                    )}
                 </select>
               </div>
             </div>
+
+            {/* Mostrar información del estudiante seleccionado */}
+            {selectedStudentData && (
+              <div className="student-info">
+                <h4>Información del Estudiante Seleccionado:</h4>
+                <div className="info-grid">
+                  <div>
+                    <strong>Estudiante:</strong>{" "}
+                    {selectedStudentData.estudiante ||
+                      students.find((s) => s.usuarioId == filters.UsuarioId)
+                        ?.primerNombre +
+                        " " +
+                        students.find((s) => s.usuarioId == filters.UsuarioId)
+                          ?.primerApellido}
+                  </div>
+                  <div>
+                    <strong>Curso:</strong>{" "}
+                    {selectedStudentData.curso ||
+                      courses.find((c) => c.cursoID == filters.CursoId)?.nombre}
+                  </div>
+                  <div>
+                    <strong>Grado:</strong>{" "}
+                    {
+                      gradesList.find((g) => g.gradoID == filters.GradoId)
+                        ?.nombreGrado
+                    }
+                  </div>
+                  <div>
+                    <strong>Sección:</strong>{" "}
+                    {selectedStudentData.seccion ||
+                      sections.find((s) => s.seccionID == filters.SeccionId)
+                        ?.nombreSeccion}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               className="btn-secondary"
@@ -336,6 +443,7 @@ const Grades = () => {
                   GradoId: "",
                   SeccionId: "",
                 });
+                setSelectedStudentData(null);
                 // Resetear también las secciones a todas
                 const sectionsResponse = callApi(() =>
                   gradeSectionService.getSections({})
@@ -379,8 +487,12 @@ const Grades = () => {
                   {grades
                     .filter((task) => !task.calificada && !task.punteoObtenido)
                     .map((task) => (
-                      <option key={task.tareaId} value={task.tareaId}>
-                        {task.titulo} - {task.codigo || `ID: ${task.tareaId}`}
+                      <option
+                        key={task.tareaId || task.idTarea}
+                        value={task.tareaId || task.idTarea}
+                      >
+                        {task.titulo || task.tituloTarea} -{" "}
+                        {task.codigo || `ID: ${task.tareaId || task.idTarea}`}
                       </option>
                     ))}
                 </select>
@@ -463,14 +575,22 @@ const Grades = () => {
               </thead>
               <tbody>
                 {grades.map((grade, index) => (
-                  <tr key={grade.tareaId || grade.calificacionId || index}>
+                  <tr
+                    key={
+                      grade.tareaId ||
+                      grade.idTarea ||
+                      grade.calificacionId ||
+                      index
+                    }
+                  >
                     {!isStudent && (
                       <td>
-                        {grade.primerNombre} {grade.primerApellido}
+                        {grade.estudiante || grade.primerNombre}{" "}
+                        {grade.primerApellido}
                       </td>
                     )}
-                    <td>{grade.titulo}</td>
-                    <td>{grade.nombreCurso}</td>
+                    <td>{grade.titulo || grade.tituloTarea}</td>
+                    <td>{grade.nombreCurso || grade.curso}</td>
                     <td>
                       {grade.fechaEntrega
                         ? new Date(grade.fechaEntrega).toLocaleDateString()
