@@ -26,7 +26,7 @@ const Tasks = () => {
     PunteoTarea: "",
   });
 
-  const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5; // Profesor, Admin o Coordinador
+  const canEdit = user?.rolID === 2 || user?.rolID === 1 || user?.rolID === 5;
   const isStudent = user?.rolID === 3;
   const pageTitle = isStudent ? "Mis Tareas" : "Gestión de Tareas";
 
@@ -93,18 +93,27 @@ const Tasks = () => {
 
   const loadTasks = async () => {
     try {
+      console.log("🔄 Cargando tareas...");
       const response = await callApi(() => taskService.getTasks({}));
-      // Manejar diferentes formatos de respuesta
+      console.log("📦 Respuesta completa de tareas:", response);
+
+      // Manejar diferentes formatos de respuesta - MANTÉN LA MISMA LÓGICA QUE FUNCIONABA
       if (response && response.success && Array.isArray(response.data)) {
+        console.log("✅ Tareas cargadas (formato 1):", response.data);
         setTasks(response.data);
       } else if (response && Array.isArray(response)) {
+        console.log("✅ Tareas cargadas (formato 2):", response);
         setTasks(response);
+      } else if (response && Array.isArray(response.data)) {
+        console.log("✅ Tareas cargadas (formato 3):", response.data);
+        setTasks(response.data);
       } else {
-        console.log("Formato inesperado de tareas:", response);
+        console.log("❌ Formato inesperado de tareas:", response);
         setTasks([]);
       }
     } catch (err) {
-      console.error("Error cargando tareas:", err);
+      console.error("❌ Error cargando tareas:", err);
+      setTasks([]);
     }
   };
 
@@ -164,7 +173,7 @@ const Tasks = () => {
           }),
         };
 
-        console.log("Actualizando tarea:", updateData);
+        console.log("🔄 Actualizando tarea:", updateData);
 
         await callApi(
           () => taskService.updateTask(updateData),
@@ -182,7 +191,7 @@ const Tasks = () => {
           PunteoTarea: parseFloat(formData.PunteoTarea) || 0,
         };
 
-        console.log("Creando nueva tarea:", taskData);
+        console.log("📝 Creando nueva tarea:", taskData);
 
         await callApi(
           () => taskService.createTask(taskData),
@@ -196,11 +205,12 @@ const Tasks = () => {
       // Recargar la lista de tareas
       await loadTasks();
     } catch (err) {
-      console.error("Error en operación de tarea:", err);
+      console.error("❌ Error en operación de tarea:", err);
     }
   };
 
   const handleEdit = (task) => {
+    console.log("✏️ Editando tarea:", task);
     setIsEditing(true);
     setEditingTaskId(task.tareaID);
 
@@ -210,9 +220,9 @@ const Tasks = () => {
       : "";
 
     setFormData({
-      CursoID: task.cursoID?.toString() || "",
-      GradoID: task.gradoID?.toString() || "",
-      SeccionID: task.seccionID?.toString() || "",
+      CursoID: task.cursoID?.toString() || task.cursoId?.toString() || "",
+      GradoID: task.gradoID?.toString() || task.gradoId?.toString() || "",
+      SeccionID: task.seccionID?.toString() || task.seccionId?.toString() || "",
       Titulo: task.titulo || "",
       Descripcion: task.descripcion || "",
       FechaEntrega: fechaEntrega,
@@ -220,8 +230,8 @@ const Tasks = () => {
     });
 
     // Cargar secciones del grado seleccionado
-    if (task.gradoID) {
-      handleGradoChange(task.gradoID);
+    if (task.gradoID || task.gradoId) {
+      handleGradoChange(task.gradoID || task.gradoId);
     }
 
     // Scroll al formulario
@@ -240,6 +250,7 @@ const Tasks = () => {
     }
 
     try {
+      console.log("🗑️ Eliminando tarea ID:", taskId);
       await callApi(
         () => taskService.deleteTask({ TareaID: taskId }),
         "Tarea eliminada exitosamente"
@@ -248,7 +259,7 @@ const Tasks = () => {
       // Recargar la lista de tareas
       await loadTasks();
     } catch (err) {
-      console.error("Error eliminando tarea:", err);
+      console.error("❌ Error eliminando tarea:", err);
     }
   };
 
@@ -281,12 +292,6 @@ const Tasks = () => {
     } catch (error) {
       return "Fecha inválida";
     }
-  };
-
-  // Función para verificar si una tarea está vencida
-  const isTaskOverdue = (task) => {
-    if (!task.fechaEntrega) return false;
-    return new Date(task.fechaEntrega) < new Date();
   };
 
   return (
@@ -455,28 +460,20 @@ const Tasks = () => {
         ) : (
           <div className="tasks-grid">
             {tasks.map((task) => (
-              <div
-                key={task.tareaID}
-                className={`task-card ${isTaskOverdue(task) ? "overdue" : ""}`}
-              >
+              <div key={task.tareaID || task.id} className="task-card">
                 <div className="task-header">
                   <h3>{task.titulo}</h3>
-                  <div className="task-status-group">
-                    {isTaskOverdue(task) && (
-                      <span className="task-status overdue">Vencida</span>
-                    )}
-                    <span
-                      className={`task-status ${
-                        task.estado?.toLowerCase() || "pendiente"
-                      }`}
-                    >
-                      {task.estado || "Pendiente"}
-                    </span>
-                  </div>
+                  <span
+                    className={`task-status ${
+                      task.estado?.toLowerCase() || "pendiente"
+                    }`}
+                  >
+                    {task.estado || "Pendiente"}
+                  </span>
                 </div>
                 <div className="task-details">
                   <p>
-                    <strong>Código:</strong> {task.codigo || "N/A"}
+                    <strong>Código:</strong> {task.idTareaCreada || "N/A"}
                   </p>
                   <p>
                     <strong>Curso:</strong> {task.nombreCurso || "N/A"}
@@ -486,7 +483,7 @@ const Tasks = () => {
                     {formatDate(task.fechaEntrega)}
                   </p>
                   <p>
-                    <strong>Grado/Sección:</strong> {task.nombreGrado || "N/A"}{" "}
+                    <strong>Grado/Sección:</strong> {task.nombregrado || "N/A"}{" "}
                     - {task.nombreSeccion || "N/A"}
                   </p>
                   <p>
@@ -507,7 +504,7 @@ const Tasks = () => {
                     </button>
                     <button
                       className="btn-delete"
-                      onClick={() => handleDelete(task.tareaID)}
+                      onClick={() => handleDelete(task.tareaID || task.id)}
                       disabled={loading}
                     >
                       Eliminar
