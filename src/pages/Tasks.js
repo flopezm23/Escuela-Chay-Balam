@@ -484,7 +484,7 @@ const Tasks = () => {
                     <strong>Código:</strong> {task.idTareaCreada || "N/A"}
                   </p>
                   <p>
-                    <strong>Curso:</strong> {task.nombreCurso || "N/A"}
+                    <strong>Curso:</strong> {task.nombrecurso || "N/A"}
                   </p>
                   <p>
                     <strong>Fecha de entrega:</strong>{" "}
