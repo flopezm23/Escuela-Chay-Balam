@@ -19,7 +19,9 @@ import Communication from "./pages/Communication";
 import MassNotifications from "./pages/MassNotifications";
 import Information from "./pages/Information";
 import UserManagement from "./pages/UserManagement";
+import Profile from "./pages/Profile";
 import "./App.css";
+import Profile from "./pages/Profile";
 
 // Componente simplificado para evitar errores
 const AppContent = () => {
@@ -40,6 +42,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <Welcome />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={[1, 2, 3, 4, 5]}>
+                <Profile />
               </ProtectedRoute>
             }
           />

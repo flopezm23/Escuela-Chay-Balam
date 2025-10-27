@@ -1,0 +1,59 @@
+/* src/pages/Profile.css */
+.profile-container {
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.profile-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  text-align: center;
+}
+
+.profile-header {
+  margin-bottom: 2rem;
+}
+
+.profile-avatar {
+  font-size: 4rem;
+  color: #3498db;
+  margin-bottom: 1rem;
+}
+
+.profile-card h2 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.profile-role {
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.profile-info {
+  text-align: left;
+}
+
+.info-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.info-group:last-child {
+  border-bottom: none;
+}
+
+.info-group label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.info-group span {
+  color: #7f8c8d;
+}

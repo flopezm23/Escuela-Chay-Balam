@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Navbar.css";
@@ -6,9 +6,34 @@ import "./Navbar.css";
 const Navbar = () => {
   const { user, logout, getRoleName } = useAuth();
   const location = useLocation();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
   const isActive = (path) => {
     return location.pathname === path ? "active" : "";
+  };
+
+  // Cerrar el menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleProfileMenu = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
   };
 
   return (
@@ -17,16 +42,6 @@ const Navbar = () => {
         <Link to="/">
           <h2>Sistema Escolar Chay B'alam</h2>
         </Link>
-      </div>
-
-      <div className="navbar-user">
-        <span className="user-info">
-          {user?.primerNombre} {user?.primerApellido}
-          <small>({getRoleName(user?.rolID)})</small>
-        </span>
-        <button onClick={logout} className="btn-logout">
-          Cerrar Sesión
-        </button>
       </div>
 
       <ul className="navbar-nav">
@@ -125,6 +140,43 @@ const Navbar = () => {
           </Link>
         </li>
       </ul>
+
+      {/* Menú de perfil */}
+      <div className="navbar-user" ref={profileRef}>
+        <div className="user-profile" onClick={toggleProfileMenu}>
+          <div className="user-avatar">
+            <i className="fas fa-user-circle"></i>
+          </div>
+          <div className="user-info">
+            <span className="user-name">
+              {user?.primerNombre} {user?.primerApellido}
+            </span>
+            <span className="user-role">{getRoleName(user?.rolID)}</span>
+          </div>
+          <i className={`fas fa-chevron-${isProfileOpen ? "up" : "down"}`}></i>
+        </div>
+
+        {isProfileOpen && (
+          <div className="profile-menu">
+            <Link
+              to="/profile"
+              className="profile-menu-item"
+              onClick={() => setIsProfileOpen(false)}
+            >
+              <i className="fas fa-user"></i>
+              <span>Mi Perfil</span>
+            </Link>
+            <div className="profile-menu-divider"></div>
+            <button
+              className="profile-menu-item btn-logout"
+              onClick={handleLogout}
+            >
+              <i className="fas fa-sign-out-alt"></i>
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        )}
+      </div>
     </nav>
   );
 };
