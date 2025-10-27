@@ -492,7 +492,7 @@ const Tasks = () => {
                   </p>
                   <p>
                     <strong>Grado/Sección:</strong> {task.nombregrado || "N/A"}{" "}
-                    - {task.nombreSeccion || "N/A"}
+                    - {task.nombreseccion || "N/A"}
                   </p>
                   <p>
                     <strong>Punteo:</strong> {task.punteoTarea || "0"} puntos
