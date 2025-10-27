@@ -259,8 +259,16 @@ const Tasks = () => {
 
     try {
       console.log("🗑️ Eliminando tarea ID:", taskId);
+
+      // Asegurarnos de que taskId sea un número
+      const taskIdNum = parseInt(taskId);
+
+      if (isNaN(taskIdNum)) {
+        throw new Error("ID de tarea inválido");
+      }
+
       await callApi(
-        () => taskService.deleteTask({ TareaID: taskId }),
+        () => taskService.deleteTask(taskIdNum),
         "Tarea eliminada exitosamente"
       );
 
@@ -268,6 +276,9 @@ const Tasks = () => {
       await loadTasks();
     } catch (err) {
       console.error("❌ Error eliminando tarea:", err);
+
+      // Mostrar mensaje de error específico al usuario
+      alert(`Error al eliminar tarea: ${err.message}`);
     }
   };
 
