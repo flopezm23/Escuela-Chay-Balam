@@ -97,16 +97,25 @@ const Tasks = () => {
       const response = await callApi(() => taskService.getTasks({}));
       console.log("📦 Respuesta completa de tareas:", response);
 
-      // Manejar diferentes formatos de respuesta - MANTÉN LA MISMA LÓGICA QUE FUNCIONABA
+      // Manejar diferentes formatos de respuesta - ADAPTADO PARA TU INTERCEPTOR
       if (response && response.success && Array.isArray(response.data)) {
         console.log("✅ Tareas cargadas (formato 1):", response.data);
         setTasks(response.data);
       } else if (response && Array.isArray(response)) {
-        console.log("✅ Tareas cargadas (formato 2):", response);
+        console.log(
+          "✅ Tareas cargadas (formato 2 - array directo):",
+          response
+        );
         setTasks(response);
-      } else if (response && Array.isArray(response.data)) {
+      } else if (response && response.data && Array.isArray(response.data)) {
         console.log("✅ Tareas cargadas (formato 3):", response.data);
         setTasks(response.data);
+      } else if (response && Array.isArray(response.tareas)) {
+        console.log(
+          "✅ Tareas cargadas (formato 4 - con propiedad tareas):",
+          response.tareas
+        );
+        setTasks(response.tareas);
       } else {
         console.log("❌ Formato inesperado de tareas:", response);
         setTasks([]);
@@ -116,7 +125,6 @@ const Tasks = () => {
       setTasks([]);
     }
   };
-
   // Nueva funcion para filtrar secciones por grado
   const handleGradoChange = async (gradoId) => {
     if (gradoId) {
