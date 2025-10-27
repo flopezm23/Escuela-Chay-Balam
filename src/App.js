@@ -21,7 +21,6 @@ import Information from "./pages/Information";
 import UserManagement from "./pages/UserManagement";
 import Profile from "./pages/Profile";
 import "./App.css";
-import Profile from "./pages/Profile";
 
 // Componente simplificado para evitar errores
 const AppContent = () => {
