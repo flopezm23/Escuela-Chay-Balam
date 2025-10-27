@@ -495,7 +495,7 @@ const Tasks = () => {
                     - {task.nombreseccion || "N/A"}
                   </p>
                   <p>
-                    <strong>Punteo:</strong> {task.punteoTarea || "0"} puntos
+                    <strong>Punteo:</strong> {task.punteo || "0"} puntos
                   </p>
                 </div>
                 <div className="task-description">
