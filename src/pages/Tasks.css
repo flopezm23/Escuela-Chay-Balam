@@ -198,3 +198,52 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Agrega estos estilos a tu Tasks.css */
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #545b62;
+}
+
+.btn-secondary:disabled {
+  background-color: #a0a4a8;
+  cursor: not-allowed;
+}
+
+.task-card.overdue {
+  border-left: 4px solid #e74c3c;
+  background-color: #fdf2f2;
+}
+
+.task-status.overdue {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.task-status-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-edit:disabled,
+.btn-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

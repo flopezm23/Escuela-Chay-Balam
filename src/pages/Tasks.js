@@ -13,6 +13,9 @@ const Tasks = () => {
   const [courses, setCourses] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+
   const [formData, setFormData] = useState({
     CursoID: "",
     GradoID: "",
@@ -105,7 +108,7 @@ const Tasks = () => {
     }
   };
 
-  //Nueva funcion para filtrar secciones por grado
+  // Nueva funcion para filtrar secciones por grado
   const handleGradoChange = async (gradoId) => {
     if (gradoId) {
       try {
@@ -141,40 +144,129 @@ const Tasks = () => {
     if (!canEdit) return;
 
     try {
-      // Preparar datos según el formato exacto que espera el API
-      const taskData = {
-        CursoID: parseInt(formData.CursoID),
-        GradoID: parseInt(formData.GradoID),
-        SeccionID: parseInt(formData.SeccionID),
-        Titulo: formData.Titulo,
-        Descripcion: formData.Descripcion,
-        FechaEntrega: new Date(formData.FechaEntrega).toISOString(),
-        PunteoTarea: parseFloat(formData.PunteoTarea) || 0,
-      };
+      if (isEditing) {
+        // Actualizar tarea existente
+        const updateData = {
+          TareaID: editingTaskId,
+          Titulo: formData.Titulo,
+          Descripcion: formData.Descripcion,
+          FechaEntrega: formData.FechaEntrega
+            ? new Date(formData.FechaEntrega).toISOString()
+            : undefined,
+          // Solo incluir estos campos si fueron modificados
+          ...(formData.CursoID && { CursoID: parseInt(formData.CursoID) }),
+          ...(formData.GradoID && { GradoID: parseInt(formData.GradoID) }),
+          ...(formData.SeccionID && {
+            SeccionID: parseInt(formData.SeccionID),
+          }),
+          ...(formData.PunteoTarea && {
+            PunteoTarea: parseFloat(formData.PunteoTarea),
+          }),
+        };
 
-      console.log("Enviando datos de tarea:", taskData);
+        console.log("Actualizando tarea:", updateData);
 
-      await callApi(
-        () => taskService.createTask(taskData),
-        "Tarea creada exitosamente"
-      );
+        await callApi(
+          () => taskService.updateTask(updateData),
+          "Tarea actualizada exitosamente"
+        );
+      } else {
+        // Crear nueva tarea
+        const taskData = {
+          CursoID: parseInt(formData.CursoID),
+          GradoID: parseInt(formData.GradoID),
+          SeccionID: parseInt(formData.SeccionID),
+          Titulo: formData.Titulo,
+          Descripcion: formData.Descripcion,
+          FechaEntrega: new Date(formData.FechaEntrega).toISOString(),
+          PunteoTarea: parseFloat(formData.PunteoTarea) || 0,
+        };
 
-      // Limpiar formulario
-      setFormData({
-        CursoID: "",
-        GradoID: "",
-        SeccionID: "",
-        Titulo: "",
-        Descripcion: "",
-        FechaEntrega: "",
-        PunteoTarea: "",
-      });
+        console.log("Creando nueva tarea:", taskData);
+
+        await callApi(
+          () => taskService.createTask(taskData),
+          "Tarea creada exitosamente"
+        );
+      }
+
+      // Limpiar formulario y estado
+      resetForm();
 
       // Recargar la lista de tareas
       await loadTasks();
     } catch (err) {
-      console.error("Error creando tarea:", err);
+      console.error("Error en operación de tarea:", err);
     }
+  };
+
+  const handleEdit = (task) => {
+    setIsEditing(true);
+    setEditingTaskId(task.tareaID);
+
+    // Formatear fecha para el input datetime-local
+    const fechaEntrega = task.fechaEntrega
+      ? new Date(task.fechaEntrega).toISOString().slice(0, 16)
+      : "";
+
+    setFormData({
+      CursoID: task.cursoID?.toString() || "",
+      GradoID: task.gradoID?.toString() || "",
+      SeccionID: task.seccionID?.toString() || "",
+      Titulo: task.titulo || "",
+      Descripcion: task.descripcion || "",
+      FechaEntrega: fechaEntrega,
+      PunteoTarea: task.punteoTarea?.toString() || "",
+    });
+
+    // Cargar secciones del grado seleccionado
+    if (task.gradoID) {
+      handleGradoChange(task.gradoID);
+    }
+
+    // Scroll al formulario
+    document
+      .querySelector(".tasks-form")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleDelete = async (taskId) => {
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await callApi(
+        () => taskService.deleteTask({ TareaID: taskId }),
+        "Tarea eliminada exitosamente"
+      );
+
+      // Recargar la lista de tareas
+      await loadTasks();
+    } catch (err) {
+      console.error("Error eliminando tarea:", err);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      CursoID: "",
+      GradoID: "",
+      SeccionID: "",
+      Titulo: "",
+      Descripcion: "",
+      FechaEntrega: "",
+      PunteoTarea: "",
+    });
+    setIsEditing(false);
+    setEditingTaskId(null);
+
+    // Recargar todas las secciones
+    loadInitialData();
   };
 
   const formatDate = (dateString) => {
@@ -191,6 +283,12 @@ const Tasks = () => {
     }
   };
 
+  // Función para verificar si una tarea está vencida
+  const isTaskOverdue = (task) => {
+    if (!task.fechaEntrega) return false;
+    return new Date(task.fechaEntrega) < new Date();
+  };
+
   return (
     <div className="tasks-container">
       <h1>{pageTitle}</h1>
@@ -201,10 +299,10 @@ const Tasks = () => {
         </div>
       )}
 
-      {/* Solo docentes pueden crear tareas */}
+      {/* Solo docentes pueden crear/editar tareas */}
       {canEdit && (
         <div className="tasks-form">
-          <h2>Crear Nueva Tarea</h2>
+          <h2>{isEditing ? "Editar Tarea" : "Crear Nueva Tarea"}</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-row">
               <div className="form-group">
@@ -319,9 +417,25 @@ const Tasks = () => {
               ></textarea>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "Creando..." : "Crear Tarea"}
-            </button>
+            <div className="form-actions">
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading
+                  ? "Guardando..."
+                  : isEditing
+                  ? "Actualizar Tarea"
+                  : "Crear Tarea"}
+              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={resetForm}
+                  disabled={loading}
+                >
+                  Cancelar Edición
+                </button>
+              )}
+            </div>
           </form>
         </div>
       )}
@@ -341,16 +455,24 @@ const Tasks = () => {
         ) : (
           <div className="tasks-grid">
             {tasks.map((task) => (
-              <div key={task.tareaID} className="task-card">
+              <div
+                key={task.tareaID}
+                className={`task-card ${isTaskOverdue(task) ? "overdue" : ""}`}
+              >
                 <div className="task-header">
                   <h3>{task.titulo}</h3>
-                  <span
-                    className={`task-status ${
-                      task.estado?.toLowerCase() || "pendiente"
-                    }`}
-                  >
-                    {task.estado || "Pendiente"}
-                  </span>
+                  <div className="task-status-group">
+                    {isTaskOverdue(task) && (
+                      <span className="task-status overdue">Vencida</span>
+                    )}
+                    <span
+                      className={`task-status ${
+                        task.estado?.toLowerCase() || "pendiente"
+                      }`}
+                    >
+                      {task.estado || "Pendiente"}
+                    </span>
+                  </div>
                 </div>
                 <div className="task-details">
                   <p>
@@ -376,8 +498,20 @@ const Tasks = () => {
                 </div>
                 {canEdit && (
                   <div className="task-actions">
-                    <button className="btn-edit">Editar</button>
-                    <button className="btn-delete">Eliminar</button>
+                    <button
+                      className="btn-edit"
+                      onClick={() => handleEdit(task)}
+                      disabled={loading}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDelete(task.tareaID)}
+                      disabled={loading}
+                    >
+                      Eliminar
+                    </button>
                   </div>
                 )}
                 {isStudent && (

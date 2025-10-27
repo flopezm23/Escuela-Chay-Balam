@@ -1,44 +1,51 @@
 import api, { API_ENDPOINTS } from "./api";
 
 export const taskService = {
-  // Crear tarea
-  async createTask(taskData) {
+  // Consultar tareas
+  async getTasks(filters = {}) {
     try {
-      const response = await api.post(API_ENDPOINTS.CREATE_TASK, taskData);
+      console.log("Consultando tareas con filtros:", filters);
+      const response = await api.post(API_ENDPOINTS.CONSULTAR_TAREAS, filters);
+      console.log("Respuesta de consultar tareas:", response);
       return response;
     } catch (error) {
-      throw new Error(error.mensaje || "Error al crear tarea");
+      console.error("Error en getTasks:", error);
+      throw new Error(error.mensaje || "Error al consultar tareas");
     }
   },
 
-  // Obtener tareas con filtros
-  async getTasks(filters = {}) {
+  // Crear tarea
+  async createTask(taskData) {
     try {
-      const response = await api.post(API_ENDPOINTS.GET_TASKS, filters);
+      console.log("Creando tarea:", taskData);
+      const response = await api.post(API_ENDPOINTS.CREAR_TAREA, taskData);
       return response;
     } catch (error) {
-      throw new Error(error.mensaje || "Error al obtener tareas");
+      console.error("Error en createTask:", error);
+      throw new Error(error.mensaje || "Error al crear tarea");
     }
   },
 
   // Actualizar tarea
   async updateTask(taskData) {
     try {
-      const response = await api.post(API_ENDPOINTS.UPDATE_TASK, taskData);
+      console.log("Actualizando tarea:", taskData);
+      const response = await api.post(API_ENDPOINTS.ACTUALIZAR_TAREA, taskData);
       return response;
     } catch (error) {
+      console.error("Error en updateTask:", error);
       throw new Error(error.mensaje || "Error al actualizar tarea");
     }
   },
 
   // Eliminar tarea
-  async deleteTask(taskId) {
+  async deleteTask(taskData) {
     try {
-      const response = await api.post(API_ENDPOINTS.DELETE_TASK, {
-        TareaID: taskId,
-      });
+      console.log("Eliminando tarea:", taskData);
+      const response = await api.post(API_ENDPOINTS.ELIMINAR_TAREA, taskData);
       return response;
     } catch (error) {
+      console.error("Error en deleteTask:", error);
       throw new Error(error.mensaje || "Error al eliminar tarea");
     }
   },

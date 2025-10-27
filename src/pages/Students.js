@@ -233,7 +233,7 @@ const Students = () => {
                           onClick={() => handleResetPassword(student.email)}
                           disabled={loading}
                         >
-                          Reiniciar Pass
+                          Reiniciar Contraseña
                         </button>
                       </td>
                     )}
