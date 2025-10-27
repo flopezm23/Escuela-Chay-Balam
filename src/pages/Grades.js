@@ -15,6 +15,8 @@ const Grades = () => {
   const [courses, setCourses] = useState([]);
   const [gradesList, setGradesList] = useState([]);
   const [sections, setSections] = useState([]);
+
+  // Siempre mostrar todas las opciones disponibles en los selects
   const [availableStudents, setAvailableStudents] = useState([]);
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableGrades, setAvailableGrades] = useState([]);
@@ -50,7 +52,7 @@ const Grades = () => {
     }
   }, []);
 
-  // Cuando cambien los filtros, cargar datos filtrados
+  // Cuando cambien los filtros, cargar datos filtrados (solo para la tabla)
   useEffect(() => {
     if (!isStudent) {
       loadFilteredData();
@@ -84,7 +86,7 @@ const Grades = () => {
 
         console.log("Estudiantes procesados:", allStudents);
         setStudents(allStudents);
-        setAvailableStudents(allStudents);
+        setAvailableStudents(allStudents); // Siempre mostrar todos los estudiantes
       }
 
       // Cargar todos los cursos
@@ -119,7 +121,7 @@ const Grades = () => {
     }
   };
 
-  // Cargar datos filtrados basados en los filtros actuales
+  // Cargar datos filtrados basados en los filtros actuales (SOLO para la tabla)
   const loadFilteredData = async () => {
     try {
       // Limpiar filtros vacíos antes de enviar
@@ -140,93 +142,19 @@ const Grades = () => {
         console.log("Datos filtrados recibidos:", filteredData);
         setGrades(filteredData);
 
-        // Actualizar las listas disponibles basadas en los datos filtrados
-        updateAvailableOptions(filteredData);
+        // IMPORTANTE: NO actualizar las listas disponibles basadas en los datos filtrados
+        // porque el endpoint solo devuelve tareas sin calificar
       } else {
         setGrades([]);
-        updateAvailableOptions([]);
       }
     } catch (err) {
       console.error("Error cargando datos filtrados:", err);
       setGrades([]);
-      updateAvailableOptions([]);
     }
   };
 
-  // Actualizar las opciones disponibles en los selects basado en los datos filtrados
-  const updateAvailableOptions = (filteredData) => {
-    console.log("Actualizando opciones disponibles con:", filteredData);
-
-    if (!filteredData || filteredData.length === 0) {
-      console.log("No hay datos filtrados, mostrando todas las opciones");
-      setAvailableStudents(students);
-      setAvailableCourses(courses);
-      setAvailableGrades(gradesList);
-      setAvailableSections(sections);
-      return;
-    }
-
-    // Extraer IDs únicos de los datos filtrados
-    const uniqueStudentIds = [
-      ...new Set(
-        filteredData.map((item) => item.usuarioId || item.UsuarioId || item.id)
-      ),
-    ].filter(Boolean);
-
-    const uniqueCourseIds = [
-      ...new Set(
-        filteredData.map((item) => item.cursoId || item.cursoID || item.CursoId)
-      ),
-    ].filter(Boolean);
-
-    const uniqueGradeIds = [
-      ...new Set(
-        filteredData.map((item) => item.gradoId || item.gradoID || item.GradoId)
-      ),
-    ].filter(Boolean);
-
-    const uniqueSectionIds = [
-      ...new Set(
-        filteredData.map(
-          (item) => item.seccionId || item.seccionID || item.SeccionId
-        )
-      ),
-    ].filter(Boolean);
-
-    console.log("IDs únicos encontrados:", {
-      estudiantes: uniqueStudentIds,
-      cursos: uniqueCourseIds,
-      grados: uniqueGradeIds,
-      secciones: uniqueSectionIds,
-    });
-
-    // Para estudiantes: mostrar todos inicialmente, filtrar solo si hay otros filtros activos
-    if (filters.CursoId || filters.GradoId || filters.SeccionId) {
-      const filteredStudents = students.filter((student) =>
-        uniqueStudentIds.includes(student.usuarioId)
-      );
-      console.log("Estudiantes filtrados:", filteredStudents);
-      setAvailableStudents(filteredStudents);
-    } else {
-      console.log("Mostrando todos los estudiantes:", students);
-      setAvailableStudents(students);
-    }
-
-    // Filtrar otros selects
-    const filteredCourses = courses.filter((course) =>
-      uniqueCourseIds.includes(course.cursoID)
-    );
-    const filteredGrades = gradesList.filter((grade) =>
-      uniqueGradeIds.includes(grade.gradoID)
-    );
-    const filteredSections = sections.filter((section) =>
-      uniqueSectionIds.includes(section.seccionID)
-    );
-
-    setAvailableCourses(filteredCourses);
-    setAvailableGrades(filteredGrades);
-    setAvailableSections(filteredSections);
-  };
+  // ELIMINAR la función updateAvailableOptions completamente
+  // ya que no queremos filtrar los selects basados en tareas pendientes
 
   const loadStudentGrades = async () => {
     try {
@@ -285,7 +213,7 @@ const Grades = () => {
         Observacion: "",
       });
 
-      // Recargar datos filtrados
+      // Recargar datos filtrados para actualizar la tabla
       await loadFilteredData();
     } catch (err) {
       console.error("Error registrando calificación:", err);
@@ -324,6 +252,11 @@ const Grades = () => {
     }
   };
 
+  // Filtrar tareas pendientes para el select de tareas en el formulario de calificación
+  const pendingTasks = grades.filter(
+    (task) => !task.calificada && !task.punteoObtenido
+  );
+
   return (
     <div className="grades-container">
       <h1>{pageTitle}</h1>
@@ -343,7 +276,8 @@ const Grades = () => {
           <div className="filters-section">
             <h3>Filtrar Tareas Pendientes</h3>
             <p className="filter-info">
-              <strong>Nota:</strong> Los filtros se aplican automáticamente.
+              <strong>Nota:</strong> Los filtros se aplican automáticamente a la
+              tabla de abajo.
             </p>
 
             <div className="form-row">
@@ -355,10 +289,10 @@ const Grades = () => {
                   onChange={handleFilterChange}
                 >
                   <option value="">
-                    Todos los estudiantes ({availableStudents.length})
+                    Todos los estudiantes ({students.length})
                   </option>
-                  {availableStudents.length > 0 ? (
-                    availableStudents.map((student) => (
+                  {students.length > 0 ? (
+                    students.map((student) => (
                       <option
                         key={student.usuarioId || student.id}
                         value={student.usuarioId || student.id}
@@ -375,7 +309,7 @@ const Grades = () => {
                 <small>
                   {filters.UsuarioId
                     ? "Estudiante seleccionado"
-                    : `${availableStudents.length} estudiantes disponibles`}
+                    : `${students.length} estudiantes disponibles`}
                 </small>
               </div>
               <div className="form-group">
@@ -385,10 +319,8 @@ const Grades = () => {
                   value={filters.CursoId}
                   onChange={handleFilterChange}
                 >
-                  <option value="">
-                    Todos los cursos ({availableCourses.length})
-                  </option>
-                  {availableCourses.map((course) => (
+                  <option value="">Todos los cursos ({courses.length})</option>
+                  {courses.map((course) => (
                     <option key={course.cursoID} value={course.cursoID}>
                       {course.nombre}
                     </option>
@@ -397,7 +329,7 @@ const Grades = () => {
                 <small>
                   {filters.CursoId
                     ? "Curso seleccionado"
-                    : `${availableCourses.length} cursos disponibles`}
+                    : `${courses.length} cursos disponibles`}
                 </small>
               </div>
             </div>
@@ -410,9 +342,9 @@ const Grades = () => {
                   onChange={handleFilterChange}
                 >
                   <option value="">
-                    Todos los grados ({availableGrades.length})
+                    Todos los grados ({gradesList.length})
                   </option>
-                  {availableGrades.map((grade) => (
+                  {gradesList.map((grade) => (
                     <option key={grade.gradoID} value={grade.gradoID}>
                       {grade.nombreGrado}
                     </option>
@@ -421,7 +353,7 @@ const Grades = () => {
                 <small>
                   {filters.GradoId
                     ? "Grado seleccionado"
-                    : `${availableGrades.length} grados disponibles`}
+                    : `${gradesList.length} grados disponibles`}
                 </small>
               </div>
               <div className="form-group">
@@ -432,9 +364,9 @@ const Grades = () => {
                   onChange={handleFilterChange}
                 >
                   <option value="">
-                    Todas las secciones ({availableSections.length})
+                    Todas las secciones ({sections.length})
                   </option>
-                  {availableSections.map((section) => (
+                  {sections.map((section) => (
                     <option key={section.seccionID} value={section.seccionID}>
                       {section.nombreSeccion}{" "}
                       {section.nombreGrado ? `- ${section.nombreGrado}` : ""}
@@ -444,7 +376,7 @@ const Grades = () => {
                 <small>
                   {filters.SeccionId
                     ? "Sección seleccionada"
-                    : `${availableSections.length} secciones disponibles`}
+                    : `${sections.length} secciones disponibles`}
                 </small>
               </div>
             </div>
@@ -460,10 +392,6 @@ const Grades = () => {
                     GradoId: "",
                     SeccionId: "",
                   });
-                  setAvailableStudents(students);
-                  setAvailableCourses(courses);
-                  setAvailableGrades(gradesList);
-                  setAvailableSections(sections);
                 }}
               >
                 Limpiar Todos los Filtros
@@ -485,8 +413,8 @@ const Grades = () => {
                     required
                   >
                     <option value="">Seleccionar estudiante</option>
-                    {availableStudents.length > 0 ? (
-                      availableStudents.map((student) => (
+                    {students.length > 0 ? (
+                      students.map((student) => (
                         <option
                           key={student.usuarioId || student.id}
                           value={student.usuarioId || student.id}
@@ -510,11 +438,8 @@ const Grades = () => {
                     required
                   >
                     <option value="">Seleccionar tarea</option>
-                    {grades
-                      .filter(
-                        (task) => !task.calificada && !task.punteoObtenido
-                      )
-                      .map((task) => (
+                    {pendingTasks.length > 0 ? (
+                      pendingTasks.map((task) => (
                         <option
                           key={task.tareaId || task.idTarea}
                           value={task.tareaId || task.idTarea}
@@ -522,8 +447,16 @@ const Grades = () => {
                           {task.titulo || task.tituloTarea} -{" "}
                           {task.codigo || `ID: ${task.tareaId || task.idTarea}`}
                         </option>
-                      ))}
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No hay tareas pendientes con los filtros actuales
+                      </option>
+                    )}
                   </select>
+                  <small>
+                    {pendingTasks.length} tareas pendientes encontradas
+                  </small>
                 </div>
               </div>
 
