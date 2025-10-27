@@ -18,31 +18,41 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     setLoading(true);
-    console.log("Iniciando login con:", { email, password });
+    console.log("🔐 Iniciando login con:", { email, password });
 
     try {
       const response = await authService.login(email, password);
-      console.log("Respuesta completa del login:", response);
+      console.log("✅ Respuesta completa del login:", response);
+
+      // DEBUG: Mostrar estructura completa
+      console.log("🔍 Estructura de la respuesta:");
+      console.log("- ¿Tiene correo?:", !!response.correo);
+      console.log("- ¿Tiene nombre?:", !!response.nombre);
+      console.log("- ¿Tiene apellido?:", !!response.apellido);
+      console.log("- ¿Tiene rol?:", !!response.rol);
+      console.log("- Todas las propiedades:", Object.keys(response));
 
       // El API está devolviendo: {correo, nombre, apellido, rol}
       if (response && response.correo && response.rol) {
         // Parsear nombre y apellido (vienen como "Mynor Styven" y "Sinay Alvarez")
-        const nombres = response.nombre.split(" ");
-        const apellidos = response.apellido.split(" ");
+        const nombres = response.nombre ? response.nombre.split(" ") : ["", ""];
+        const apellidos = response.apellido
+          ? response.apellido.split(" ")
+          : ["", ""];
 
         const userData = {
-          usuarioId: 0, // El API no está devolviendo ID, usar valor temporal
+          usuarioId: response.usuarioId || 0, // El API podría devolver ID
           email: response.correo,
-          primerNombre: nombres[0] || response.nombre,
+          primerNombre: nombres[0] || response.nombre || "",
           segundoNombre: nombres[1] || "",
-          primerApellido: apellidos[0] || response.apellido,
+          primerApellido: apellidos[0] || response.apellido || "",
           segundoApellido: apellidos[1] || "",
           rolID: mapRoleToID(response.rol), // Convertir rol string a ID numérico
-          rol: response.rol.toLowerCase(),
-          token: generarTokenTemporal(), // Generar token temporal ya que el API no lo devuelve
+          rolNombre: response.rol,
+          token: response.token || generarTokenTemporal(), // Usar token del API si existe
         };
 
-        console.log("Usuario procesado:", userData);
+        console.log("👤 Usuario procesado:", userData);
 
         setUser(userData);
         setIsAuthenticated(true);
@@ -54,10 +64,13 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return { success: true, user: userData };
       } else {
-        throw new Error(response?.mensaje || "Formato de respuesta inesperado");
+        console.error("❌ Formato de respuesta inesperado:", response);
+        throw new Error(
+          response?.mensaje || "Formato de respuesta inesperado del servidor"
+        );
       }
     } catch (error) {
-      console.error("Error completo en login:", error);
+      console.error("❌ Error completo en login:", error);
       setLoading(false);
       setIsAuthenticated(false);
       return {
@@ -67,33 +80,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Convertir rol string a ID numérico
+  // Convertir rol string a ID numérico - MEJORADO
   const mapRoleToID = (rolString) => {
     const roleMap = {
-      Administrador: 1,
-      Profesor: 2,
-      Docente: 2,
-      Alumno: 3,
-      Estudiante: 3,
-      "Personal de Desarrollo": 4,
-      Coordinador: 5,
+      administrador: 1,
+      profesor: 2,
+      docente: 2,
+      alumno: 3,
+      estudiante: 3,
+      "personal de desarrollo": 4,
+      desarrollo: 4,
+      coordinador: 5,
     };
-    return roleMap[rolString] || 3;
+
+    // Normalizar el string (minúsculas, sin espacios extras)
+    const normalizedRole = rolString.toLowerCase().trim();
+    return roleMap[normalizedRole] || 3; // Default a estudiante si no se encuentra
   };
 
-  // Mapear roles por ID numérico para uso interno
-  const mapRole = (rolID) => {
-    const roleMap = {
-      1: "admin",
-      2: "docente",
-      3: "estudiante",
-      4: "desarrollo",
-      5: "coordinador",
-    };
-    return roleMap[rolID] || "estudiante";
-  };
-
-  // Generar token temporal (ya que el API no lo devuelve)
+  // Generar token temporal (solo si el API no lo devuelve)
   const generarTokenTemporal = () => {
     return (
       "temp_token_" +
@@ -132,8 +137,9 @@ export const AuthProvider = ({ children }) => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setIsAuthenticated(true);
+        console.log("🔄 Usuario cargado desde localStorage:", userData);
       } catch (error) {
-        console.error("Error parsing saved user:", error);
+        console.error("❌ Error parsing saved user:", error);
         logout();
       }
     }

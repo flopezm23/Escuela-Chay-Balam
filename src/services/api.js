@@ -23,11 +23,11 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar respuestas - CORREGIDO
+// Interceptor para manejar respuestas
 api.interceptors.response.use(
   (response) => {
-    // NO devolver response.data directamente, mantener la estructura completa de Axios
-    return response;
+    // El API puede devolver directamente los datos o con estructura { data, success, mensaje }
+    return response.data;
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -46,7 +46,6 @@ api.interceptors.response.use(
     return Promise.reject({
       mensaje: errorMessage,
       status: error.response?.status,
-      response: error.response, // Mantener la respuesta completa
     });
   }
 );

@@ -1,10 +1,10 @@
 import api, { API_ENDPOINTS } from "./api";
 
 export const authService = {
-  // Login
+  // Login - MEJORADO
   async login(email, password) {
     try {
-      console.log("Enviando login al API:", {
+      console.log("🔐 Enviando login al API:", {
         Email: email,
         Contrasenia: password,
         endpoint: API_ENDPOINTS.LOGIN,
@@ -15,11 +15,29 @@ export const authService = {
         Contrasenia: password,
       });
 
-      console.log("Respuesta cruda del API:", response);
+      console.log("✅ Respuesta del API:", response);
+
+      // Si la respuesta es exitosa pero viene con mensaje de error
+      if (response && response.mensaje && !response.correo) {
+        throw new Error(response.mensaje);
+      }
+
       return response;
     } catch (error) {
-      console.error("Error en authService.login:", error);
-      throw new Error(error.mensaje || "Error al iniciar sesión");
+      console.error("❌ Error en authService.login:", error);
+
+      // Mejor manejo de errores
+      if (error.mensaje) {
+        throw new Error(error.mensaje);
+      } else if (error.response && error.response.data) {
+        throw new Error(
+          error.response.data.mensaje ||
+            error.response.data.message ||
+            "Error al iniciar sesión"
+        );
+      } else {
+        throw new Error(error.message || "Error al iniciar sesión");
+      }
     }
   },
 
