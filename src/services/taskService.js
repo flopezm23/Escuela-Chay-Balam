@@ -31,52 +31,55 @@ export const taskService = {
     }
   },
 
-  // Eliminar tarea
-  async deleteTask(taskId) {
-    try {
-      console.log("🗑️ Eliminando tarea ID:", taskId);
+// Eliminar tarea
+async deleteTask(dataOrId, endpoint = API_ENDPOINTS.ELIMINAR_TAREA) {
+  try {
+    // Detectar si recibimos un número o un objeto
+    const tareaId =
+      typeof dataOrId === "object" ? dataOrId.TareaID : parseInt(dataOrId);
 
-      // Preparar datos según el formato que espera el endpoint
-      const deleteData = {
-        TareaID: parseInt(taskId), // Asegurar que sea número
-      };
+    if (isNaN(tareaId)) throw new Error("ID de tarea inválido");
 
-      console.log("📤 Datos enviados para eliminar:", deleteData);
+    const deleteData = { TareaID: tareaId };
+    console.log("🗑️ Eliminando tarea...");
+    console.log("📤 Endpoint:", endpoint);
+    console.log("📦 Datos enviados:", deleteData);
 
-      const response = await api.post(API_ENDPOINTS.ELIMINAR_TAREA, deleteData);
+    // Ejecutar POST hacia el endpoint configurado
+    const response = await api.post(endpoint, deleteData);
 
-      console.log("✅ Tarea eliminada exitosamente:", response);
-      return response;
-    } catch (error) {
-      console.error("❌ Error completo en deleteTask:", error);
+    console.log("✅ Respuesta del servidor:", response);
+    return response;
+  } catch (error) {
+    console.error("❌ Error completo en deleteTask:", error);
 
-      // Mejor manejo de errores
-      if (error.response) {
-        console.error("📋 Detalles del error:", {
-          status: error.response.status,
-          data: error.response.data,
-          url: error.config?.url,
-        });
+    if (error.response) {
+      console.error("📋 Detalles del error:", {
+        status: error.response.status,
+        data: error.response.data,
+        url: error.config?.url,
+      });
 
-        // Mensajes específicos según el código de error
-        if (error.response.status === 400) {
-          throw new Error("Solicitud incorrecta. Verifique el ID de la tarea.");
-        } else if (error.response.status === 404) {
-          throw new Error("Tarea no encontrada.");
-        } else if (error.response.status === 403) {
-          throw new Error("No tiene permisos para eliminar esta tarea.");
-        } else {
-          throw new Error(
-            error.response.data?.mensaje ||
-              error.response.data?.message ||
-              "Error al eliminar tarea"
-          );
-        }
-      } else if (error.request) {
-        throw new Error("No se pudo conectar con el servidor.");
+      if (error.response.status === 400) {
+        throw new Error("Solicitud incorrecta. Verifique el ID de la tarea.");
+      } else if (error.response.status === 404) {
+        throw new Error("Tarea no encontrada.");
+      } else if (error.response.status === 409) {
+        throw new Error(
+          "La tarea no puede eliminarse porque tiene dependencias."
+        );
       } else {
-        throw new Error(error.mensaje || "Error al eliminar tarea");
+        throw new Error(
+          error.response.data?.mensaje ||
+            error.response.data?.message ||
+            "Error al eliminar tarea"
+        );
       }
+    } else if (error.request) {
+      throw new Error("No se pudo conectar con el servidor.");
+    } else {
+      throw new Error(error.mensaje || "Error al eliminar tarea");
     }
-  },
+  }
+},
 };

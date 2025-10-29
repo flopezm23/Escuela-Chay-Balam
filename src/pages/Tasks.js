@@ -15,6 +15,8 @@ const Tasks = () => {
   const [sections, setSections] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [feedback, setFeedback] = useState({ message: "", type: "" });
+
 
   const [formData, setFormData] = useState({
     CursoID: "",
@@ -248,39 +250,69 @@ const Tasks = () => {
       ?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleDelete = async (taskId) => {
-    if (
-      !window.confirm(
-        "¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
-      )
-    ) {
-      return;
+const handleDelete = async (taskId) => {
+  if (
+    !window.confirm(
+      "¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
+    )
+  ) {
+    return;
+  }
+
+  try {
+    console.log("🗑️ Eliminando tarea ID:", taskId);
+    const taskIdNum = Number(taskId) || null;
+    console.log("✅ ID numérico procesado:", taskIdNum);
+
+    if (isNaN(taskIdNum)) {
+      throw new Error("ID de tarea inválido");
     }
 
-    try {
-      console.log("🗑️ Eliminando tarea ID:", taskId);
+    // 🔹 Usar el endpoint específico con el JSON requerido
+    await callApi(
+      () =>
+        taskService.deleteTask(
+          { TareaID: taskIdNum },
+          "/Tareas/EliminarTarea"
+        ),
+      ""
+    );
 
-      // Asegurarnos de que taskId sea un número
-      const taskIdNum = parseInt(taskId);
+    // ✅ Mensaje de éxito
+    setFeedback({
+      message: "Tarea eliminada exitosamente.",
+      type: "success",
+    });
 
-      if (isNaN(taskIdNum)) {
-        throw new Error("ID de tarea inválido");
-      }
+    await loadTasks();
+  } catch (err) {
+    console.error("❌ Error eliminando tarea:", err);
+    const status = err?.response?.status;
+    const msg = err?.message?.toLowerCase() || "";
 
-      await callApi(
-        () => taskService.deleteTask(taskIdNum),
-        "Tarea eliminada exitosamente"
-      );
+    // Limpiar error global del hook useApi
+    clearError();
 
-      // Recargar la lista de tareas
-      await loadTasks();
-    } catch (err) {
-      console.error("❌ Error eliminando tarea:", err);
-
-      // Mostrar mensaje de error específico al usuario
-      alert(`Error al eliminar tarea: ${err.message}`);
+    if (status === 409 || msg.includes("409") || msg.includes("dependencias")) {
+      setFeedback({
+        message: "La tarea ya cuenta con calificaciones, no se puede eliminar.",
+        type: "warning",
+      });
+    } else if (status === 404 || msg.includes("404")) {
+      setFeedback({
+        message: "La tarea no fue encontrada.",
+        type: "error",
+      });
+    } else {
+      setFeedback({
+        message: "Error al eliminar tarea. Intenta nuevamente.",
+        type: "error",
+      });
     }
-  };
+  } finally {
+    setTimeout(() => setFeedback({ message: "", type: "" }), 5000);
+  }
+};
 
   const resetForm = () => {
     setFormData({
@@ -316,6 +348,25 @@ const Tasks = () => {
   return (
     <div className="tasks-container">
       <h1>{pageTitle}</h1>
+
+    {feedback.message && (
+      <div
+        className={`${
+          feedback.type === "success"
+            ? "success-message"
+            : feedback.type === "warning"
+            ? "warning-message"
+            : "error-message"
+        }`}
+        style={{
+          textAlign: "center",
+          marginBottom: "1rem",
+          fontWeight: "500",
+        }}
+      >
+        {feedback.message}
+      </div>
+    )}
 
       {error && (
         <div className="error-message">
