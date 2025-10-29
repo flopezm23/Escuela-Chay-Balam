@@ -222,8 +222,8 @@ const Students = () => {
                 {students.map((student) => (
                   <tr key={student.usuarioId}>
                     <td>
-                      {student.primerNombre} {student.segundoNombre || ""}{" "}
-                      {student.primerApellido} {student.segundoApellido || ""}
+                      {student.nombre} {" "}
+                      {student.apellido} 
                     </td>
                     <td>{student.email}</td>
                     {canEdit && (

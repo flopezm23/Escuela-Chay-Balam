@@ -260,19 +260,18 @@ const UserManagement = () => {
                   {users.map((userItem) => (
                     <tr key={userItem.usuarioId || userItem.id}>
                       <td>
-                        {userItem.primerNombre} {userItem.segundoNombre || ""}{" "}
-                        {userItem.primerApellido}{" "}
-                        {userItem.segundoApellido || ""}
+                        {userItem.nombre} {" "}
+                        {userItem.apellido}{" "}
                       </td>
                       <td>{userItem.email}</td>
-                      <td>{getRoleBadge(userItem.rolID)}</td>
+                      <td>{getRoleBadge(userItem.idRol)}</td>
                       <td>
                         <button
                           className="btn-reset"
                           onClick={() => handleResetPassword(userItem.email)}
                           disabled={loading}
                         >
-                          Reiniciar Pass
+                          Reiniciar Contraseña
                         </button>
                       </td>
                     </tr>
