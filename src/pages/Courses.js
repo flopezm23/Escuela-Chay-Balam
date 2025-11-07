@@ -8,6 +8,7 @@ const Courses = () => {
   const { user } = useAuth();
   const { loading, error, callApi, clearError } = useApi();
   const [courses, setCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState([]); // Para el datalist
   const [formData, setFormData] = useState({
     CursoID: "",
     Nombre: "",
@@ -16,11 +17,12 @@ const Courses = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const canEdit = user?.rolID === 1 || user?.rolID === 5; // Admin o Coordinador
+  const canEdit = user?.rolID === 1 || user?.rolID === 5;
 
   // Cargar cursos al montar el componente
   useEffect(() => {
     loadCourses();
+    loadAllCoursesForDatalist();
   }, []);
 
   const loadCourses = async (searchQuery = "") => {
@@ -28,7 +30,6 @@ const Courses = () => {
       const filters = searchQuery ? { Q: searchQuery } : {};
       const response = await callApi(() => courseService.getCourses(filters));
 
-      // Manejar diferentes formatos de respuesta
       if (response && response.success && Array.isArray(response.data)) {
         setCourses(response.data);
       } else if (response && Array.isArray(response)) {
@@ -41,6 +42,29 @@ const Courses = () => {
     } catch (err) {
       console.error("Error cargando cursos:", err);
       setCourses([]);
+    }
+  };
+
+  // Cargar todos los cursos para el datalist (sin filtros)
+  const loadAllCoursesForDatalist = async () => {
+    try {
+      const response = await courseService.getCourses();
+      let coursesList = [];
+
+      if (response && response.success && Array.isArray(response.data)) {
+        coursesList = response.data;
+      } else if (response && Array.isArray(response)) {
+        coursesList = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        coursesList = response.data;
+      }
+
+      // Ordenar alfabéticamente por nombre
+      coursesList.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setAllCourses(coursesList);
+    } catch (err) {
+      console.error("Error cargando cursos para datalist:", err);
+      setAllCourses([]);
     }
   };
 
@@ -62,6 +86,15 @@ const Courses = () => {
     loadCourses(searchTerm);
   };
 
+  const handleSearchSelect = (e) => {
+    const selectedValue = e.target.value;
+    setSearchTerm(selectedValue);
+    // Si el usuario selecciona una opción del datalist, buscar inmediatamente
+    if (selectedValue) {
+      loadCourses(selectedValue);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       CursoID: "",
@@ -78,22 +111,20 @@ const Courses = () => {
 
     try {
       if (isEditing) {
-        // Actualizar curso existente
         await callApi(
           () => courseService.updateCourse(formData),
           "Curso actualizado exitosamente"
         );
       } else {
-        // Crear nuevo curso
         await callApi(
           () => courseService.createCourse(formData),
           "Curso creado exitosamente"
         );
       }
 
-      // Limpiar formulario y recargar lista
       resetForm();
       await loadCourses(searchTerm);
+      await loadAllCoursesForDatalist(); // Actualizar datalist después de cambios
     } catch (err) {
       console.error("Error guardando curso:", err);
     }
@@ -106,7 +137,6 @@ const Courses = () => {
       Descripcion: course.descripcion,
     });
     setIsEditing(true);
-    // Scroll to form
     document
       .querySelector(".courses-form")
       ?.scrollIntoView({ behavior: "smooth" });
@@ -123,8 +153,8 @@ const Courses = () => {
         "Curso eliminado exitosamente"
       );
 
-      // Recargar la lista de cursos
       await loadCourses(searchTerm);
+      await loadAllCoursesForDatalist(); // Actualizar datalist después de eliminar
     } catch (err) {
       console.error("Error eliminando curso:", err);
     }
@@ -134,24 +164,45 @@ const Courses = () => {
     resetForm();
   };
 
+  // Obtener opciones únicas y ordenadas para el datalist
+  const getDatalistOptions = () => {
+    const uniqueNames = [...new Set(allCourses.map((course) => course.nombre))];
+    return uniqueNames.sort((a, b) => a.localeCompare(b));
+  };
+
   return (
     <div className="courses-container">
       <h1>Gestión de Cursos</h1>
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Búsqueda */}
+      {/* Búsqueda con datalist */}
       <div className="search-section">
         <form onSubmit={handleSearch} className="search-form">
           <div className="search-group">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Buscar cursos por nombre o descripción..."
-              disabled={loading}
-            />
-            <button type="submit" disabled={loading}>
+            <div className="search-input-wrapper">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onInput={handleSearchSelect}
+                list="courses-datalist"
+                placeholder="Buscar cursos por nombre... 🔍"
+                disabled={loading}
+                className="search-input-with-datalist"
+              />
+              <datalist id="courses-datalist">
+                {getDatalistOptions().map((courseName, index) => (
+                  <option key={index} value={courseName}>
+                    {courseName}
+                  </option>
+                ))}
+              </datalist>
+              <div className="datalist-hint">
+                ⬇️ Escribe y selecciona de la lista
+              </div>
+            </div>
+            <button type="submit" disabled={loading} className="btn-search">
               🔍 Buscar
             </button>
             {searchTerm && (
@@ -162,12 +213,23 @@ const Courses = () => {
                   loadCourses();
                 }}
                 disabled={loading}
+                className="btn-clear-search"
               >
                 ✕ Limpiar
               </button>
             )}
           </div>
         </form>
+
+        {/* Información de búsqueda */}
+        {searchTerm && (
+          <div className="search-info">
+            <small>
+              Mostrando {courses.length} curso{courses.length !== 1 ? "s" : ""}
+              {searchTerm && ` para "${searchTerm}"`}
+            </small>
+          </div>
+        )}
       </div>
 
       {/* Solo admin/coordinador puede agregar/editar cursos */}
@@ -198,7 +260,18 @@ const Courses = () => {
                   required
                   disabled={loading}
                   placeholder="Ej: Matemáticas Básicas"
+                  list="new-course-datalist"
                 />
+                <datalist id="new-course-datalist">
+                  {getDatalistOptions().map((courseName, index) => (
+                    <option key={index} value={courseName}>
+                      {courseName}
+                    </option>
+                  ))}
+                </datalist>
+                <div className="input-hint">
+                  💡 Puedes escribir y seleccionar de cursos existentes
+                </div>
               </div>
             </div>
 
@@ -241,13 +314,23 @@ const Courses = () => {
       <div className="courses-list">
         <div className="list-header">
           <h2>Listado de Cursos ({courses.length})</h2>
-          <button
-            onClick={() => loadCourses(searchTerm)}
-            className="btn-refresh"
-            disabled={loading}
-          >
-            🔄 Actualizar
-          </button>
+          <div className="list-actions">
+            <button
+              onClick={() => loadCourses(searchTerm)}
+              className="btn-refresh"
+              disabled={loading}
+            >
+              🔄 Actualizar
+            </button>
+            <button
+              onClick={loadAllCoursesForDatalist}
+              className="btn-refresh-datalist"
+              disabled={loading}
+              title="Actualizar lista de búsqueda"
+            >
+              📝 Actualizar Lista
+            </button>
+          </div>
         </div>
 
         {loading && courses.length === 0 ? (
@@ -265,6 +348,17 @@ const Courses = () => {
               <p className="no-data-suggestion">
                 Usa el formulario arriba para registrar el primer curso.
               </p>
+            )}
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  loadCourses();
+                }}
+                className="btn-clear-search-inline"
+              >
+                Ver todos los cursos
+              </button>
             )}
           </div>
         ) : (

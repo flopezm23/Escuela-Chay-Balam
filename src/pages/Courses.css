@@ -372,3 +372,193 @@
     align-items: stretch;
   }
 }
+/* Agregar al Courses.css */
+
+/* Búsqueda mejorada con datalist */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-input-with-datalist {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.search-input-with-datalist:focus {
+  outline: none;
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.datalist-hint {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  font-size: 0.75em;
+  color: #6c757d;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 0 0 4px 4px;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.search-input-with-datalist:focus + .datalist-hint {
+  opacity: 1;
+}
+
+/* Botones de búsqueda mejorados */
+.btn-search {
+  padding: 12px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.btn-search:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-clear-search {
+  padding: 12px 15px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.3s ease;
+}
+
+.btn-clear-search:hover:not(:disabled) {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+/* Información de búsqueda */
+.search-info {
+  margin-top: 10px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Hint para inputs */
+.input-hint {
+  font-size: 0.8em;
+  color: #6c757d;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Acciones de lista mejoradas */
+.list-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-refresh-datalist {
+  padding: 8px 15px;
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+
+.btn-refresh-datalist:hover:not(:disabled) {
+  background: #138496;
+  transform: translateY(-1px);
+}
+
+/* Botón para limpiar búsqueda en mensaje de no datos */
+.btn-clear-search-inline {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-clear-search-inline:hover {
+  background: #0056b3;
+}
+
+/* Mejoras para el datalist en diferentes navegadores */
+datalist {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Estilos para opciones del datalist */
+datalist option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+datalist option:hover {
+  background: #007bff;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .search-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-input-wrapper {
+    width: 100%;
+  }
+
+  .list-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-refresh,
+  .btn-refresh-datalist {
+    width: 100%;
+  }
+
+  .datalist-hint {
+    position: relative;
+    opacity: 1;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-input-with-datalist {
+    font-size: 16px; /* Previene zoom en iOS */
+  }
+}
