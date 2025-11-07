@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
 import "./Reports.css";
 import { useAuth } from "../context/AuthContext";
-import { reportService } from "../services/reportService";
 import { useApi } from "../hooks/useApi";
+
+// Importar api directamente
+import api from "../services/api";
+
+const ENDPOINTS = {
+  GRADE_SECTION_REPORT: "/Reportes/GradoSeccion",
+  GRADE_SECTION_COURSE_REPORT: "/Reportes/GradoSeccionCurso",
+  TEACHER_ASSIGNMENT_REPORT: "/Reportes/ProfeXGradoCursoSeccion",
+};
 
 const Reports = () => {
   const { user } = useAuth();
@@ -15,14 +23,13 @@ const Reports = () => {
     curso: "",
   });
 
-  // Estados para las opciones de los dropdowns
-  const [dropdownOptions, setDropdownOptions] = useState({
+  const [availableOptions, setAvailableOptions] = useState({
     grados: [],
     secciones: [],
     cursos: [],
   });
 
-  const [availableOptions, setAvailableOptions] = useState({
+  const [defaultOptions, setDefaultOptions] = useState({
     grados: [],
     secciones: [],
     cursos: [],
@@ -30,7 +37,27 @@ const Reports = () => {
 
   const canViewReports = user?.rolID === 1 || user?.rolID === 5;
 
-  // Funciones para obtener opciones (integradas directamente)
+  // Función para ordenar grados de manera natural (Primero, Segundo, Tercero, etc.)
+  const ordenarGrados = (grados) => {
+    const orden = [
+      "Primero",
+      "Segundo",
+      "Tercero",
+      "Cuarto",
+      "Quinto",
+      "Sexto",
+    ];
+    return grados.sort((a, b) => {
+      const indexA = orden.indexOf(a);
+      const indexB = orden.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  };
+
+  // Funciones para obtener opciones por defecto
   const getDefaultGrados = () => [
     "Primero",
     "Segundo",
@@ -48,93 +75,111 @@ const Reports = () => {
     "Inglés",
   ];
 
-  // Cargar opciones iniciales al montar el componente
   useEffect(() => {
     loadInitialOptions();
   }, []);
 
-  // Cargar opciones disponibles basadas en los datos del reporte
   useEffect(() => {
     if (reportData && Array.isArray(reportData)) {
       extractAvailableOptions();
     }
   }, [reportData]);
 
-  const loadInitialOptions = async () => {
-    try {
-      // Usar valores por defecto
-      const grados = getDefaultGrados();
-      const secciones = getDefaultSecciones();
-      const cursos = getDefaultCursos();
+  const loadInitialOptions = () => {
+    const grados = ordenarGrados(getDefaultGrados());
+    const secciones = getDefaultSecciones().sort();
+    const cursos = getDefaultCursos().sort();
 
-      setDropdownOptions({
-        grados: [...new Set(grados)].sort(),
-        secciones: [...new Set(secciones)].sort(),
-        cursos: [...new Set(cursos)].sort(),
-      });
+    const initialOptions = {
+      grados,
+      secciones,
+      cursos,
+    };
 
-      setAvailableOptions({
-        grados: [...new Set(grados)].sort(),
-        secciones: [...new Set(secciones)].sort(),
-        cursos: [...new Set(cursos)].sort(),
-      });
-    } catch (error) {
-      console.error("Error cargando opciones iniciales:", error);
-    }
+    setDefaultOptions(initialOptions);
+    setAvailableOptions(initialOptions);
   };
 
   const extractAvailableOptions = () => {
-    if (!reportData || !Array.isArray(reportData)) return;
+    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+      // Si no hay datos, mantener las opciones por defecto
+      setAvailableOptions(defaultOptions);
+      return;
+    }
 
-    const grados = [
+    // Extraer opciones únicas de los datos
+    const gradosData = [
       ...new Set(reportData.map((item) => item.nombreGrado).filter(Boolean)),
-    ].sort();
-    const secciones = [
+    ];
+    const seccionesData = [
       ...new Set(reportData.map((item) => item.nombreSeccion).filter(Boolean)),
-    ].sort();
-    const cursos = [
+    ];
+    const cursosData = [
       ...new Set(reportData.map((item) => item.nombreCurso).filter(Boolean)),
+    ];
+
+    // Combinar con opciones por defecto y ordenar
+    const combinedGrados = ordenarGrados([
+      ...new Set([...defaultOptions.grados, ...gradosData]),
+    ]);
+    const combinedSecciones = [
+      ...new Set([...defaultOptions.secciones, ...seccionesData]),
+    ].sort();
+    const combinedCursos = [
+      ...new Set([...defaultOptions.cursos, ...cursosData]),
     ].sort();
 
     setAvailableOptions({
-      grados: grados.length > 0 ? grados : dropdownOptions.grados,
-      secciones: secciones.length > 0 ? secciones : dropdownOptions.secciones,
-      cursos: cursos.length > 0 ? cursos : dropdownOptions.cursos,
+      grados: combinedGrados,
+      secciones: combinedSecciones,
+      cursos: combinedCursos,
     });
   };
 
-  // Función para generar reporte con filtros
+  // Función para generar reporte - con mejor manejo de errores
   const generateReport = async (type) => {
     try {
       clearError();
       setReportType(type);
+      setReportData(null); // Limpiar datos anteriores
+
       let response;
 
       console.log(`Generando reporte ${type} con filtros:`, filters);
 
+      // Validar que los filtros no contengan valores inválidos
+      const filtrosLimpios = {
+        Grado: filters.grado || "",
+        Seccion: filters.seccion || "",
+        Curso: filters.curso || "",
+      };
+
       switch (type) {
         case "gradoSeccion":
           response = await callApi(() =>
-            reportService.getGradeSectionReport(filters.grado, filters.seccion)
+            api.post(ENDPOINTS.GRADE_SECTION_REPORT, {
+              Grado: filtrosLimpios.Grado,
+              Seccion: filtrosLimpios.Seccion,
+            })
           );
           break;
 
         case "gradoSeccionCurso":
           response = await callApi(() =>
-            reportService.getGradeSectionCourseReport(
-              filters.grado,
-              filters.seccion,
-              filters.curso
-            )
+            api.post(ENDPOINTS.GRADE_SECTION_COURSE_REPORT, {
+              Grado: filtrosLimpios.Grado,
+              Seccion: filtrosLimpios.Seccion,
+              Curso: filtrosLimpios.Curso,
+            })
           );
           break;
 
         case "profesores":
           response = await callApi(() =>
-            reportService.getTeacherAssignmentReport(
-              filters.grado,
-              filters.seccion
-            )
+            api.post(ENDPOINTS.TEACHER_ASSIGNMENT_REPORT, {
+              Grado: filtrosLimpios.Grado,
+              Seccion: filtrosLimpios.Seccion,
+            })
           );
           break;
 
@@ -144,18 +189,32 @@ const Reports = () => {
 
       console.log("Respuesta completa del reporte:", response);
 
-      // La respuesta ES el array directamente
       if (response && Array.isArray(response)) {
-        setReportData(response);
-      } else if (response && response.data && Array.isArray(response.data)) {
-        setReportData(response.data);
+        if (response.length === 0) {
+          setReportData([]);
+        } else {
+          setReportData(response);
+        }
+      } else if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          setReportData(response.data.length === 0 ? [] : response.data);
+        } else {
+          setReportData([]);
+        }
       } else {
-        console.log("No se encontraron datos en el formato esperado");
         setReportData([]);
       }
     } catch (err) {
       console.error("Error generando reporte:", err);
-      setReportData(null);
+
+      // Manejar errores específicos
+      if (err.response && err.response.status === 404) {
+        setReportData([]);
+        // No mostramos error para 404, solo datos vacíos
+        clearError();
+      } else {
+        setReportData(null);
+      }
     }
   };
 
@@ -175,6 +234,7 @@ const Reports = () => {
       curso: "",
     });
     setReportData(null);
+    clearError();
   };
 
   // Función exportToCSV
@@ -246,11 +306,27 @@ const Reports = () => {
     document.body.removeChild(link);
   };
 
-  // Renderizar tabla
+  // Renderizar tabla con mensaje amigable para datos vacíos
   const renderTable = () => {
-    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+    if (!reportData) {
+      return null;
+    }
+
+    if (!Array.isArray(reportData) || reportData.length === 0) {
       return (
-        <p className="no-data">No hay datos disponibles para este reporte.</p>
+        <div className="no-data-message">
+          <div className="no-data-icon">📭</div>
+          <h3>No se encontraron datos</h3>
+          <p>
+            {reportType === "profesores"
+              ? "No hay asignaciones de profesores para los filtros seleccionados."
+              : "No hay registros que coincidan con los filtros aplicados."}
+          </p>
+          <p className="no-data-suggestion">
+            Intenta con diferentes filtros o verifica que los datos existan en
+            el sistema.
+          </p>
+        </div>
       );
     }
 
@@ -514,7 +590,7 @@ const Reports = () => {
         )}
       </div>
 
-      {reportData && (
+      {reportData !== null && (
         <div className="report-results">
           <div className="report-header">
             <h3>
@@ -523,13 +599,17 @@ const Reports = () => {
               {reportType === "gradoSeccionCurso" &&
                 "📚 Reporte por Grado, Sección y Curso"}
               {reportType === "profesores" && "👨‍🏫 Asignación de Profesores"}
-              <span className="record-count">
-                ({Array.isArray(reportData) ? reportData.length : 1} registros)
-              </span>
+              {Array.isArray(reportData) && reportData.length > 0 && (
+                <span className="record-count">
+                  ({reportData.length} registros)
+                </span>
+              )}
             </h3>
-            <button onClick={exportToCSV} className="btn-export">
-              📥 Exportar a CSV
-            </button>
+            {Array.isArray(reportData) && reportData.length > 0 && (
+              <button onClick={exportToCSV} className="btn-export">
+                📥 Exportar a CSV
+              </button>
+            )}
           </div>
 
           <div className="report-table">{renderTable()}</div>
