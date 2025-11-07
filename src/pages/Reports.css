@@ -244,3 +244,60 @@
     grid-template-columns: 1fr;
   }
 }
+/* Reports.css - Agregar estas clases */
+
+.report-filters {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.report-filters h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.filter-group input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.btn-generate {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  height: fit-content;
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-generate:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
