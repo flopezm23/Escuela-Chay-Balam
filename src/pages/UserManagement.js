@@ -8,6 +8,7 @@ const UserManagement = () => {
   const { user } = useAuth();
   const { loading, error, callApi, clearError } = useApi();
   const [users, setUsers] = useState([]);
+  const [validationError, setValidationError] = useState("");
   const [formData, setFormData] = useState({
     PrimerNombre: "",
     SegundoNombre: "",
@@ -58,7 +59,14 @@ const UserManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+      // Validacion de correo
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
+    if (!emailRegex.test(formData.Email)) {
+      setValidationError("Por favor, ingresa un correo electrónico válido (ejemplo@dominio.com).");
+      return;
+    }
     try {
       // Preparar datos según el formato del API
       const userData = {
@@ -192,7 +200,7 @@ const UserManagement = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Email *</label>
+                <label>Correo Electrónico *</label>
                 <input
                   type="email"
                   name="Email"
@@ -200,7 +208,11 @@ const UserManagement = () => {
                   onChange={handleInputChange}
                   required
                   disabled={loading}
+                  className={validationError ? "invalid-input" : ""}
                 />
+                {validationError && (
+                  <small className="validation-error">{validationError}</small>
+                )}
               </div>
               <div className="form-group">
                 <label>Contraseña Temporal *</label>

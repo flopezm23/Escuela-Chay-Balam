@@ -45,6 +45,7 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .badge-admin {
@@ -62,6 +63,14 @@
   color: white;
 }
 
+.badge-dev {
+  background-color: #6f42c1; 
+  color: white;
+}
+.badge-coordinador {
+  background-color: #fd7e14; 
+  color: white;
+}
 .users-table-container {
   overflow-x: auto;
 }
@@ -92,4 +101,16 @@
   .user-management-container {
     padding: 1rem;
   }
+}
+
+.invalid-input {
+  border: 2px solid #dc3545 !important; 
+  background-color: #fff5f5;
+}
+
+.validation-error {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  display: block;
 }

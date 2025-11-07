@@ -1,3 +1,4 @@
+/* ====== Barra principal ====== */
 .navbar {
   display: flex;
   align-items: center;
@@ -7,10 +8,16 @@
   height: 70px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: relative;
+  z-index: 1000;
 }
 
+/* ====== Marca / Logo ====== */
 .navbar-brand {
   flex-shrink: 0;
+}
+
+.navbar-brand a {
+  text-decoration: none;
 }
 
 .navbar-brand h2 {
@@ -20,10 +27,7 @@
   font-weight: 600;
 }
 
-.navbar-brand a {
-  text-decoration: none;
-}
-
+/* ====== Navegación principal ====== */
 .navbar-nav {
   display: flex;
   list-style: none;
@@ -33,6 +37,7 @@
   flex: 1;
   justify-content: center;
   max-width: 800px;
+  transition: all 0.3s ease;
 }
 
 .nav-item {
@@ -68,7 +73,7 @@
   text-align: center;
 }
 
-/* Menú de usuario */
+/* ====== Menú de usuario ====== */
 .navbar-user {
   position: relative;
   flex-shrink: 0;
@@ -118,7 +123,7 @@
   transition: transform 0.3s ease;
 }
 
-/* Menú desplegable */
+/* ====== Menú desplegable de perfil ====== */
 .profile-menu {
   position: absolute;
   top: 100%;
@@ -127,7 +132,7 @@
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   min-width: 200px;
-  z-index: 1000;
+  z-index: 2000;
   margin-top: 0.5rem;
   overflow: hidden;
 }
@@ -172,56 +177,156 @@
   margin: 0.25rem 0;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
-  .navbar {
-    padding: 0 1rem;
+/* ====== Botón menú hamburguesa ====== */
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 35px;
+  height: 35px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  gap: 5px;
+  z-index: 1001;
+}
+
+.menu-toggle .bar {
+  width: 25px;
+  height: 3px;
+  background-color: white;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Animación al abrir */
+.menu-toggle.open .bar:nth-child(1) {
+  transform: rotate(45deg) translateY(7px);
+}
+.menu-toggle.open .bar:nth-child(2) {
+  opacity: 0;
+}
+.menu-toggle.open .bar:nth-child(3) {
+  transform: rotate(-45deg) translateY(-7px);
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .menu-toggle {
+    display: flex;
   }
 
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    height: auto;
+    padding: 0.75rem 1rem;
+  }
+
+  .navbar-brand h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Menú oculto por defecto */
   .navbar-nav {
-    gap: 0.25rem;
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: #0bbeff;
+    border-top: 2px solid rgba(255, 255, 255, 0.3);
+    margin-top: 1rem;
+    padding: 0.75rem 0;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+  }
+
+  /* Cuando el menú está abierto */
+  .navbar-nav.open {
+    display: flex;
   }
 
   .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .nav-link i {
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .navbar {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 1rem;
-    gap: 1rem;
-  }
-
-  .navbar-brand {
-    order: 1;
+    justify-content: flex-start;
+    font-size: 1rem;
+    padding: 0.75rem 1.2rem;
+    border-radius: 0;
   }
 
   .navbar-user {
-    order: 2;
-    margin-left: auto;
+    order: 3;
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: flex-start;
   }
 
-  .navbar-nav {
-    order: 3;
-    flex-basis: 100%;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding: 0.5rem 0;
+  .user-profile {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
   }
 
   .user-info .user-role {
     display: none;
   }
+}
 
-  .user-profile {
-    min-width: auto;
+/* ====== Ajustes extra para pantallas pequeñas ====== */
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .navbar-brand h2 {
+    font-size: 1rem;
+  }
+
+  .nav-link {
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
+  }
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; 
+  flex-wrap: nowrap; 
+  overflow-x: auto; 
+  white-space: nowrap;
+}
+
+.navbar-nav {
+  flex: 1; 
+  justify-content: center;
+  max-width: none; 
+  flex-wrap: wrap; 
+}
+
+.navbar-brand {
+  flex: 0 0 auto; 
+}
+
+.navbar-user {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1024px) and (max-width: 1400px) {
+  .nav-link {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .navbar-brand h2 {
+    font-size: 1.2rem;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
   }
 }

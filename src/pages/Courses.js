@@ -322,14 +322,6 @@ const Courses = () => {
             >
               🔄 Actualizar
             </button>
-            <button
-              onClick={loadAllCoursesForDatalist}
-              className="btn-refresh-datalist"
-              disabled={loading}
-              title="Actualizar lista de búsqueda"
-            >
-              📝 Actualizar Lista
-            </button>
           </div>
         </div>
 

@@ -52,33 +52,43 @@ const Students = () => {
     clearError();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!canEdit) return;
+const [validationError, setValidationError] = useState("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!canEdit) return;
 
-    try {
-      await callApi(
-        () => authService.createUser(formData),
-        "Estudiante creado exitosamente"
-      );
+  // Validacion de correo
+  const emailRegex =
+    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-      // Limpiar formulario
-      setFormData({
-        PrimerNombre: "",
-        SegundoNombre: "",
-        PrimerApellido: "",
-        SegundoApellido: "",
-        Email: "",
-        Contrasena: "",
-        RolID: 3,
-      });
+  if (!emailRegex.test(formData.Email)) {
+    setValidationError("Por favor, ingresa un correo electrónico válido (ejemplo@dominio.com).");
+    return;
+  }
 
-      // Recargar la lista de estudiantes
-      await loadStudents();
-    } catch (err) {
-      console.error("Error creando estudiante:", err);
-    }
-  };
+  setValidationError("");
+
+  try {
+    await callApi(
+      () => authService.createUser(formData),
+      "Estudiante creado exitosamente"
+    );
+
+    setFormData({
+      PrimerNombre: "",
+      SegundoNombre: "",
+      PrimerApellido: "",
+      SegundoApellido: "",
+      Email: "",
+      Contrasena: "",
+      RolID: 3,
+    });
+
+    await loadStudents();
+  } catch (err) {
+    console.error("Error creando estudiante:", err);
+  }
+};
 
   const handleResetPassword = async (studentEmail) => {
     if (
@@ -173,7 +183,11 @@ const Students = () => {
                   required
                   disabled={loading}
                   placeholder="correo@ejemplo.com"
+                  className={validationError ? "invalid-input" : ""}
                 />
+                {validationError && (
+                  <small className="validation-error">{validationError}</small>
+                )}
               </div>
               <div className="form-group">
                 <label>Contraseña Temporal *</label>
