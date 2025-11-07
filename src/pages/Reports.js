@@ -10,7 +10,7 @@ const Reports = () => {
   const [reportData, setReportData] = useState(null);
   const [reportType, setReportType] = useState("gradoSeccion");
 
-  const canViewReports = user?.rolID === 1 || user?.rolID === 5; // Admin y Coordinador
+  const canViewReports = user?.rolID === 1 || user?.rolID === 5;
 
   const generateReport = async (type) => {
     try {
@@ -18,22 +18,22 @@ const Reports = () => {
       setReportType(type);
       let response;
 
+      console.log(`Generando reporte ${type} sin parámetros`);
+
       switch (type) {
         case "gradoSeccion":
-          response = await callApi(() =>
-            reportService.getGradeSectionReport({})
-          );
+          response = await callApi(() => reportService.getGradeSectionReport());
           break;
 
         case "gradoSeccionCurso":
           response = await callApi(() =>
-            reportService.getGradeSectionCourseReport({})
+            reportService.getGradeSectionCourseReport()
           );
           break;
 
         case "profesores":
           response = await callApi(() =>
-            reportService.getTeacherAssignmentReport({})
+            reportService.getTeacherAssignmentReport()
           );
           break;
 
@@ -41,11 +41,16 @@ const Reports = () => {
           return;
       }
 
+      console.log("Respuesta del reporte:", response);
+
       if (response) {
         setReportData(response.data || response);
+      } else {
+        setReportData([]);
       }
     } catch (err) {
       console.error("Error generando reporte:", err);
+      setReportData(null);
     }
   };
 
@@ -62,9 +67,12 @@ const Reports = () => {
         headers = ["Estudiante", "Curso", "Calificación Promedio", "Estado"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.estudiante || item.nombreEstudiante || "N/A",
+            item.estudiante || item.nombreEstudiante || item.nombre || "N/A",
             item.curso || item.nombreCurso || "N/A",
-            item.promedio || item.calificacionPromedio || "N/A",
+            item.promedio ||
+              item.calificacionPromedio ||
+              item.calificacion ||
+              "N/A",
             item.estado || "N/A",
           ]);
         }
@@ -74,8 +82,8 @@ const Reports = () => {
         headers = ["Estudiante", "Tarea", "Calificación", "Fecha", "Estado"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.estudiante || item.nombreEstudiante || "N/A",
-            item.tarea || item.tituloTarea || "N/A",
+            item.estudiante || item.nombreEstudiante || item.nombre || "N/A",
+            item.tarea || item.tituloTarea || item.titulo || "N/A",
             item.calificacion || item.punteoObtenido || "N/A",
             item.fecha || item.fechaEntrega || "N/A",
             item.estado || "N/A",
@@ -87,11 +95,11 @@ const Reports = () => {
         headers = ["Profesor", "Curso", "Grado", "Sección", "Estudiantes"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.profesor || item.nombreProfesor || "N/A",
+            item.profesor || item.nombreProfesor || item.nombre || "N/A",
             item.curso || item.nombreCurso || "N/A",
             item.grado || item.nombreGrado || "N/A",
             item.seccion || item.nombreSeccion || "N/A",
-            item.cantidadEstudiantes || "N/A",
+            item.cantidadEstudiantes || item.estudiantes || "N/A",
           ]);
         }
         break;
@@ -189,7 +197,6 @@ const Reports = () => {
                 "📚 Reporte por Grado, Sección y Curso"}
               {reportType === "profesores" && "👨‍🏫 Asignación de Profesores"}
               <span className="record-count">
-                {" "}
                 ({Array.isArray(reportData) ? reportData.length : 1} registros)
               </span>
             </h3>
@@ -237,25 +244,31 @@ const Reports = () => {
                       {reportType === "gradoSeccion" && (
                         <>
                           <td>
-                            {item.estudiante || item.nombreEstudiante || "N/A"}
+                            {item.estudiante ||
+                              item.nombreEstudiante ||
+                              item.nombre ||
+                              "N/A"}
                           </td>
                           <td>{item.curso || item.nombreCurso || "N/A"}</td>
                           <td>
                             {item.promedio ||
                               item.calificacionPromedio ||
+                              item.calificacion ||
                               "N/A"}
                           </td>
                           <td>
                             <span
                               className={`status-badge ${
                                 item.promedio >= 61 ||
-                                item.calificacionPromedio >= 61
+                                item.calificacionPromedio >= 61 ||
+                                item.calificacion >= 61
                                   ? "aprobado"
                                   : "reprobado"
                               }`}
                             >
                               {item.promedio >= 61 ||
-                              item.calificacionPromedio >= 61
+                              item.calificacionPromedio >= 61 ||
+                              item.calificacion >= 61
                                 ? "Aprobado"
                                 : "Reprobado"}
                             </span>
@@ -265,9 +278,17 @@ const Reports = () => {
                       {reportType === "gradoSeccionCurso" && (
                         <>
                           <td>
-                            {item.estudiante || item.nombreEstudiante || "N/A"}
+                            {item.estudiante ||
+                              item.nombreEstudiante ||
+                              item.nombre ||
+                              "N/A"}
                           </td>
-                          <td>{item.tarea || item.tituloTarea || "N/A"}</td>
+                          <td>
+                            {item.tarea ||
+                              item.tituloTarea ||
+                              item.titulo ||
+                              "N/A"}
+                          </td>
                           <td>
                             {item.calificacion || item.punteoObtenido || "N/A"}
                           </td>
@@ -292,12 +313,19 @@ const Reports = () => {
                       {reportType === "profesores" && (
                         <>
                           <td>
-                            {item.profesor || item.nombreProfesor || "N/A"}
+                            {item.profesor ||
+                              item.nombreProfesor ||
+                              item.nombre ||
+                              "N/A"}
                           </td>
                           <td>{item.curso || item.nombreCurso || "N/A"}</td>
                           <td>{item.grado || item.nombreGrado || "N/A"}</td>
                           <td>{item.seccion || item.nombreSeccion || "N/A"}</td>
-                          <td>{item.cantidadEstudiantes || "N/A"}</td>
+                          <td>
+                            {item.cantidadEstudiantes ||
+                              item.estudiantes ||
+                              "N/A"}
+                          </td>
                         </>
                       )}
                     </tr>
@@ -306,7 +334,9 @@ const Reports = () => {
               </table>
             ) : (
               <p className="no-data">
-                No hay datos disponibles para este reporte.
+                {reportData && !Array.isArray(reportData)
+                  ? "El reporte devolvió datos en un formato inesperado."
+                  : "No hay datos disponibles para este reporte."}
               </p>
             )}
           </div>
@@ -323,15 +353,15 @@ const Reports = () => {
           <div className="report-types-info">
             <div className="info-card">
               <h4>📊 Grado y Sección</h4>
-              <p>Calificaciones promedio de estudiantes por grado y sección</p>
+              <p>Calificaciones promedio de todos los estudiantes</p>
             </div>
             <div className="info-card">
               <h4>📚 Grado, Sección y Curso</h4>
-              <p>Detalle de tareas y calificaciones específicas por curso</p>
+              <p>Detalle de todas las tareas y calificaciones</p>
             </div>
             <div className="info-card">
               <h4>👨‍🏫 Asignación de Profesores</h4>
-              <p>Distribución de profesores por grado, sección y curso</p>
+              <p>Distribución completa de profesores</p>
             </div>
           </div>
         </div>
