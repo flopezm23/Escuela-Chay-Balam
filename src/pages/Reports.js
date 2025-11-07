@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import "./Reports.css";
 import { useAuth } from "../context/AuthContext";
 import { reportService } from "../services/reportService";
-import { optionsService } from "../services/optionsService";
 import { useApi } from "../hooks/useApi";
 
 const Reports = () => {
@@ -31,6 +30,24 @@ const Reports = () => {
 
   const canViewReports = user?.rolID === 1 || user?.rolID === 5;
 
+  // Funciones para obtener opciones (integradas directamente)
+  const getDefaultGrados = () => [
+    "Primero",
+    "Segundo",
+    "Tercero",
+    "Cuarto",
+    "Quinto",
+    "Sexto",
+  ];
+  const getDefaultSecciones = () => ["A", "B", "C", "D"];
+  const getDefaultCursos = () => [
+    "Lengua",
+    "Matemáticas",
+    "Ciencias",
+    "Historia",
+    "Inglés",
+  ];
+
   // Cargar opciones iniciales al montar el componente
   useEffect(() => {
     loadInitialOptions();
@@ -45,10 +62,10 @@ const Reports = () => {
 
   const loadInitialOptions = async () => {
     try {
-      // Cargar opciones por defecto
-      const grados = await optionsService.getGrados();
-      const secciones = await optionsService.getSecciones();
-      const cursos = await optionsService.getCursos();
+      // Usar valores por defecto
+      const grados = getDefaultGrados();
+      const secciones = getDefaultSecciones();
+      const cursos = getDefaultCursos();
 
       setDropdownOptions({
         grados: [...new Set(grados)].sort(),
@@ -160,7 +177,7 @@ const Reports = () => {
     setReportData(null);
   };
 
-  // Función exportToCSV (mantener igual)
+  // Función exportToCSV
   const exportToCSV = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
       alert("No hay datos para exportar");
@@ -229,7 +246,7 @@ const Reports = () => {
     document.body.removeChild(link);
   };
 
-  // Renderizar tabla (mantener igual)
+  // Renderizar tabla
   const renderTable = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
       return (
@@ -421,7 +438,6 @@ const Reports = () => {
     </div>
   );
 
-  // Resto del componente (mantener igual)...
   if (!canViewReports) {
     return (
       <div className="reports-container">
