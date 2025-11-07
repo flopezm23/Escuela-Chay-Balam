@@ -129,3 +129,246 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* Agregar al Courses.css */
+
+/* Búsqueda */
+.search-section {
+  margin-bottom: 30px;
+}
+
+.search-form {
+  max-width: 600px;
+}
+
+.search-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-group input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.search-group button {
+  padding: 10px 15px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.search-group button:hover:not(:disabled) {
+  background: #545b62;
+}
+
+/* Formulario */
+.courses-form {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px solid #e9ecef;
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.disabled-input {
+  background: #e9ecef !important;
+  color: #6c757d !important;
+  cursor: not-allowed !important;
+}
+
+/* Lista de cursos */
+.list-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.btn-refresh {
+  padding: 8px 15px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #218838;
+}
+
+/* Tarjetas de cursos mejoradas */
+.course-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.course-header {
+  display: flex;
+  justify-content: between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.course-header h3 {
+  margin: 0;
+  color: #333;
+  flex: 1;
+}
+
+.course-id {
+  background: #e9ecef;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.course-description {
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 15px;
+}
+
+/* Botones de acción */
+.course-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-edit {
+  padding: 8px 15px;
+  background: #ffc107;
+  color: #212529;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.btn-edit:hover:not(:disabled) {
+  background: #e0a800;
+}
+
+.btn-delete {
+  padding: 8px 15px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* Mensajes de estado */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.no-data-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.no-data-message h3 {
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+.no-data-message p {
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+.no-data-suggestion {
+  font-size: 0.9em;
+  color: #868e96 !important;
+  font-style: italic;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .search-group {
+    flex-direction: column;
+  }
+
+  .search-group input {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .course-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .course-actions {
+    flex-direction: column;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
