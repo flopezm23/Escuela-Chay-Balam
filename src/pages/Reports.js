@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./Reports.css";
 import { useAuth } from "../context/AuthContext";
 import { reportService } from "../services/reportService";
@@ -78,6 +78,77 @@ const Reports = () => {
     }));
   };
 
+  // Función exportToCSV corregida
+  const exportToCSV = () => {
+    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+      alert("No hay datos para exportar");
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    let headers = [];
+    let rows = [];
+
+    switch (reportType) {
+      case "gradoSeccion":
+        headers = ["Estudiante", "Grado", "Sección", "Rol"];
+        rows = reportData.map((item) => [
+          `${item.nombreAlumno || item.nombre || "N/A"} ${
+            item.apellidoAlumno || item.apellido || ""
+          }`,
+          item.nombreGrado || item.grado || "N/A",
+          item.nombreSeccion || item.seccion || "N/A",
+          item.nombreRol || item.rol || "N/A",
+        ]);
+        break;
+
+      case "gradoSeccionCurso":
+        headers = ["Estudiante", "Grado", "Sección", "Curso", "Rol"];
+        rows = reportData.map((item) => [
+          `${item.nombreAlumno || item.nombre || "N/A"} ${
+            item.apellidoAlumno || item.apellido || ""
+          }`,
+          item.nombreGrado || item.grado || "N/A",
+          item.nombreSeccion || item.seccion || "N/A",
+          item.nombreCurso || item.curso || "N/A",
+          item.nombreRol || item.rol || "N/A",
+        ]);
+        break;
+
+      case "profesores":
+        headers = ["Profesor", "Grado", "Sección", "Curso"];
+        rows = reportData.map((item) => [
+          `${item.nombreProfesor || item.nombre || "N/A"} ${
+            item.apellidoProfesor || item.apellido || ""
+          }`,
+          item.nombreGrado || item.grado || "N/A",
+          item.nombreSeccion || item.seccion || "N/A",
+          item.nombreCurso || item.curso || "N/A",
+        ]);
+        break;
+
+      default:
+        headers = ["Datos"];
+        rows = reportData.map((item) => [JSON.stringify(item)]);
+    }
+
+    csvContent += headers.join(",") + "\n";
+    rows.forEach((row) => {
+      csvContent += row.map((field) => `"${field}"`).join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `reporte_${reportType}_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Renderizar tabla basada en los datos reales de la respuesta
   const renderTable = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
@@ -85,10 +156,6 @@ const Reports = () => {
         <p className="no-data">No hay datos disponibles para este reporte.</p>
       );
     }
-
-    // Tomar el primer item para determinar la estructura de datos
-    const firstItem = reportData[0];
-    console.log("Estructura de datos del primer item:", firstItem);
 
     switch (reportType) {
       case "gradoSeccion":
@@ -221,7 +288,19 @@ const Reports = () => {
     </div>
   );
 
-  // ... resto del componente permanece igual hasta la sección de renderizado ...
+  if (!canViewReports) {
+    return (
+      <div className="reports-container">
+        <div className="unauthorized-message">
+          <h1>Acceso No Autorizado</h1>
+          <p>No tienes permisos para acceder a los reportes del sistema.</p>
+          <p>
+            Solo los administradores y coordinadores pueden ver los reportes.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="reports-container">
@@ -304,7 +383,29 @@ const Reports = () => {
         </div>
       )}
 
-      {/* ... resto del JSX ... */}
+      {!reportData && !loading && (
+        <div className="welcome-message">
+          <h3>👋 Bienvenido a los Reportes</h3>
+          <p>
+            Selecciona uno de los reportes disponibles para generar la
+            información del sistema.
+          </p>
+          <div className="report-types-info">
+            <div className="info-card">
+              <h4>📊 Grado y Sección</h4>
+              <p>Calificaciones promedio de todos los estudiantes</p>
+            </div>
+            <div className="info-card">
+              <h4>📚 Grado, Sección y Curso</h4>
+              <p>Detalle de todas las tareas y calificaciones</p>
+            </div>
+            <div className="info-card">
+              <h4>👨‍🏫 Asignación de Profesores</h4>
+              <p>Distribución completa de profesores</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

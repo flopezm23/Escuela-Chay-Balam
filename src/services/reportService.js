@@ -1,3 +1,5 @@
+import api, { API_ENDPOINTS } from "./api"; // Asegúrate de que esta línea esté al inicio
+
 export const reportService = {
   // Reporte por grado y sección
   async getGradeSectionReport(grado = "", seccion = "") {
