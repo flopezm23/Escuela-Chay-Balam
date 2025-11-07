@@ -1,114 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./Reports.css";
 import { useAuth } from "../context/AuthContext";
 import { reportService } from "../services/reportService";
-import { gradeSectionService } from "../services/gradeSectionService";
-import { courseService } from "../services/courseService";
 import { useApi } from "../hooks/useApi";
 
 const Reports = () => {
   const { user } = useAuth();
   const { loading, error, callApi, clearError } = useApi();
-  const [grades, setGrades] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [reportData, setReportData] = useState(null);
   const [reportType, setReportType] = useState("gradoSeccion");
-  const [filters, setFilters] = useState({
-    Grado: "",
-    Seccion: "",
-    Curso: "",
-  });
 
   const canViewReports = user?.rolID === 1 || user?.rolID === 5; // Admin y Coordinador
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    if (canViewReports) {
-      loadInitialData();
-    }
-  }, []);
-
-  const loadInitialData = async () => {
-    try {
-      // Cargar grados
-      const gradesResponse = await callApi(() =>
-        gradeSectionService.getGrades({})
-      );
-      if (gradesResponse) {
-        setGrades(gradesResponse.data || gradesResponse || []);
-      }
-
-      // Cargar secciones
-      const sectionsResponse = await callApi(() =>
-        gradeSectionService.getSections({})
-      );
-      if (sectionsResponse) {
-        setSections(sectionsResponse.data || sectionsResponse || []);
-      }
-
-      // Cargar cursos
-      const coursesResponse = await callApi(() => courseService.getCourses({}));
-      if (coursesResponse) {
-        setCourses(coursesResponse.data || coursesResponse || []);
-      }
-    } catch (err) {
-      console.error("Error cargando datos iniciales:", err);
-    }
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters({
-      ...filters,
-      [name]: value,
-    });
-  };
-
-  const handleReportTypeChange = (e) => {
-    setReportType(e.target.value);
-    setReportData(null);
-    // Resetear filtros cuando cambie el tipo de reporte
-    setFilters({
-      Grado: "",
-      Seccion: "",
-      Curso: "",
-    });
-  };
-
-  const generateReport = async () => {
+  const generateReport = async (type) => {
     try {
       clearError();
+      setReportType(type);
       let response;
 
-      switch (reportType) {
+      switch (type) {
         case "gradoSeccion":
-          if (!filters.Grado || !filters.Seccion) {
-            alert("Por favor seleccione grado y sección");
-            return;
-          }
           response = await callApi(() =>
-            reportService.getGradeSectionReport(filters)
+            reportService.getGradeSectionReport({})
           );
           break;
 
         case "gradoSeccionCurso":
-          if (!filters.Grado || !filters.Seccion || !filters.Curso) {
-            alert("Por favor seleccione grado, sección y curso");
-            return;
-          }
           response = await callApi(() =>
-            reportService.getGradeSectionCourseReport(filters)
+            reportService.getGradeSectionCourseReport({})
           );
           break;
 
         case "profesores":
-          if (!filters.Grado || !filters.Seccion) {
-            alert("Por favor seleccione grado y sección");
-            return;
-          }
           response = await callApi(() =>
-            reportService.getTeacherAssignmentReport(filters)
+            reportService.getTeacherAssignmentReport({})
           );
           break;
 
@@ -129,7 +54,6 @@ const Reports = () => {
 
     let csvContent = "data:text/csv;charset=utf-8,";
 
-    // Encabezados basados en el tipo de reporte
     let headers = [];
     let rows = [];
 
@@ -138,9 +62,9 @@ const Reports = () => {
         headers = ["Estudiante", "Curso", "Calificación Promedio", "Estado"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.estudiante || item.nombreEstudiante,
-            item.curso || item.nombreCurso,
-            item.promedio || item.calificacionPromedio,
+            item.estudiante || item.nombreEstudiante || "N/A",
+            item.curso || item.nombreCurso || "N/A",
+            item.promedio || item.calificacionPromedio || "N/A",
             item.estado || "N/A",
           ]);
         }
@@ -150,10 +74,10 @@ const Reports = () => {
         headers = ["Estudiante", "Tarea", "Calificación", "Fecha", "Estado"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.estudiante || item.nombreEstudiante,
-            item.tarea || item.tituloTarea,
-            item.calificacion || item.punteoObtenido,
-            item.fecha || item.fechaEntrega,
+            item.estudiante || item.nombreEstudiante || "N/A",
+            item.tarea || item.tituloTarea || "N/A",
+            item.calificacion || item.punteoObtenido || "N/A",
+            item.fecha || item.fechaEntrega || "N/A",
             item.estado || "N/A",
           ]);
         }
@@ -163,10 +87,10 @@ const Reports = () => {
         headers = ["Profesor", "Curso", "Grado", "Sección", "Estudiantes"];
         if (Array.isArray(reportData)) {
           rows = reportData.map((item) => [
-            item.profesor || item.nombreProfesor,
-            item.curso || item.nombreCurso,
-            item.grado || item.nombreGrado,
-            item.seccion || item.nombreSeccion,
+            item.profesor || item.nombreProfesor || "N/A",
+            item.curso || item.nombreCurso || "N/A",
+            item.grado || item.nombreGrado || "N/A",
+            item.seccion || item.nombreSeccion || "N/A",
             item.cantidadEstudiantes || "N/A",
           ]);
         }
@@ -216,118 +140,61 @@ const Reports = () => {
 
       <div className="reports-controls">
         <div className="report-type-selector">
-          <h3>Tipo de Reporte</h3>
-          <div className="report-options">
-            <label>
-              <input
-                type="radio"
-                name="reportType"
-                value="gradoSeccion"
-                checked={reportType === "gradoSeccion"}
-                onChange={handleReportTypeChange}
-              />
-              Reporte por Grado y Sección
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="reportType"
-                value="gradoSeccionCurso"
-                checked={reportType === "gradoSeccionCurso"}
-                onChange={handleReportTypeChange}
-              />
-              Reporte por Grado, Sección y Curso
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="reportType"
-                value="profesores"
-                checked={reportType === "profesores"}
-                onChange={handleReportTypeChange}
-              />
-              Asignación de Profesores
-            </label>
+          <h3>Seleccione el Tipo de Reporte</h3>
+          <div className="report-buttons">
+            <button
+              onClick={() => generateReport("gradoSeccion")}
+              className={`report-btn ${
+                reportType === "gradoSeccion" ? "active" : ""
+              }`}
+              disabled={loading}
+            >
+              📊 Reporte por Grado y Sección
+            </button>
+            <button
+              onClick={() => generateReport("gradoSeccionCurso")}
+              className={`report-btn ${
+                reportType === "gradoSeccionCurso" ? "active" : ""
+              }`}
+              disabled={loading}
+            >
+              📚 Reporte por Grado, Sección y Curso
+            </button>
+            <button
+              onClick={() => generateReport("profesores")}
+              className={`report-btn ${
+                reportType === "profesores" ? "active" : ""
+              }`}
+              disabled={loading}
+            >
+              👨‍🏫 Asignación de Profesores
+            </button>
           </div>
         </div>
 
-        <div className="report-filters">
-          <h3>Filtros del Reporte</h3>
-          <div className="filters-grid">
-            <div className="form-group">
-              <label>Grado:</label>
-              <select
-                name="Grado"
-                value={filters.Grado}
-                onChange={handleFilterChange}
-              >
-                <option value="">Seleccionar grado</option>
-                {grades.map((grade) => (
-                  <option key={grade.gradoID} value={grade.nombreGrado}>
-                    {grade.nombreGrado}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Sección:</label>
-              <select
-                name="Seccion"
-                value={filters.Seccion}
-                onChange={handleFilterChange}
-              >
-                <option value="">Seleccionar sección</option>
-                {sections.map((section) => (
-                  <option key={section.seccionID} value={section.nombreSeccion}>
-                    {section.nombreSeccion}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {reportType === "gradoSeccionCurso" && (
-              <div className="form-group">
-                <label>Curso:</label>
-                <select
-                  name="Curso"
-                  value={filters.Curso}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">Seleccionar curso</option>
-                  {courses.map((course) => (
-                    <option key={course.cursoID} value={course.nombre}>
-                      {course.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+        {loading && (
+          <div className="loading-indicator">
+            <p>Generando reporte...</p>
           </div>
-
-          <button
-            onClick={generateReport}
-            className="btn-primary"
-            disabled={loading}
-          >
-            {loading ? "Generando..." : "Generar Reporte"}
-          </button>
-        </div>
+        )}
       </div>
 
       {reportData && (
         <div className="report-results">
           <div className="report-header">
             <h3>
-              Reporte:{" "}
-              {reportType === "gradoSeccion"
-                ? "Por Grado y Sección"
-                : reportType === "gradoSeccionCurso"
-                ? "Por Grado, Sección y Curso"
-                : "Asignación de Profesores"}
+              {reportType === "gradoSeccion" &&
+                "📊 Reporte por Grado y Sección"}
+              {reportType === "gradoSeccionCurso" &&
+                "📚 Reporte por Grado, Sección y Curso"}
+              {reportType === "profesores" && "👨‍🏫 Asignación de Profesores"}
+              <span className="record-count">
+                {" "}
+                ({Array.isArray(reportData) ? reportData.length : 1} registros)
+              </span>
             </h3>
-            <button onClick={exportToCSV} className="btn-secondary">
-              📊 Exportar a CSV
+            <button onClick={exportToCSV} className="btn-export">
+              📥 Exportar a CSV
             </button>
           </div>
 
@@ -369,9 +236,15 @@ const Reports = () => {
                     <tr key={index}>
                       {reportType === "gradoSeccion" && (
                         <>
-                          <td>{item.estudiante || item.nombreEstudiante}</td>
-                          <td>{item.curso || item.nombreCurso}</td>
-                          <td>{item.promedio || item.calificacionPromedio}</td>
+                          <td>
+                            {item.estudiante || item.nombreEstudiante || "N/A"}
+                          </td>
+                          <td>{item.curso || item.nombreCurso || "N/A"}</td>
+                          <td>
+                            {item.promedio ||
+                              item.calificacionPromedio ||
+                              "N/A"}
+                          </td>
                           <td>
                             <span
                               className={`status-badge ${
@@ -391,10 +264,14 @@ const Reports = () => {
                       )}
                       {reportType === "gradoSeccionCurso" && (
                         <>
-                          <td>{item.estudiante || item.nombreEstudiante}</td>
-                          <td>{item.tarea || item.tituloTarea}</td>
-                          <td>{item.calificacion || item.punteoObtenido}</td>
-                          <td>{item.fecha || item.fechaEntrega}</td>
+                          <td>
+                            {item.estudiante || item.nombreEstudiante || "N/A"}
+                          </td>
+                          <td>{item.tarea || item.tituloTarea || "N/A"}</td>
+                          <td>
+                            {item.calificacion || item.punteoObtenido || "N/A"}
+                          </td>
+                          <td>{item.fecha || item.fechaEntrega || "N/A"}</td>
                           <td>
                             <span
                               className={`status-badge ${
@@ -414,10 +291,12 @@ const Reports = () => {
                       )}
                       {reportType === "profesores" && (
                         <>
-                          <td>{item.profesor || item.nombreProfesor}</td>
-                          <td>{item.curso || item.nombreCurso}</td>
-                          <td>{item.grado || item.nombreGrado}</td>
-                          <td>{item.seccion || item.nombreSeccion}</td>
+                          <td>
+                            {item.profesor || item.nombreProfesor || "N/A"}
+                          </td>
+                          <td>{item.curso || item.nombreCurso || "N/A"}</td>
+                          <td>{item.grado || item.nombreGrado || "N/A"}</td>
+                          <td>{item.seccion || item.nombreSeccion || "N/A"}</td>
                           <td>{item.cantidadEstudiantes || "N/A"}</td>
                         </>
                       )}
@@ -427,9 +306,33 @@ const Reports = () => {
               </table>
             ) : (
               <p className="no-data">
-                No hay datos para mostrar con los filtros seleccionados.
+                No hay datos disponibles para este reporte.
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {!reportData && !loading && (
+        <div className="welcome-message">
+          <h3>👋 Bienvenido a los Reportes</h3>
+          <p>
+            Selecciona uno de los reportes disponibles para generar la
+            información del sistema.
+          </p>
+          <div className="report-types-info">
+            <div className="info-card">
+              <h4>📊 Grado y Sección</h4>
+              <p>Calificaciones promedio de estudiantes por grado y sección</p>
+            </div>
+            <div className="info-card">
+              <h4>📚 Grado, Sección y Curso</h4>
+              <p>Detalle de tareas y calificaciones específicas por curso</p>
+            </div>
+            <div className="info-card">
+              <h4>👨‍🏫 Asignación de Profesores</h4>
+              <p>Distribución de profesores por grado, sección y curso</p>
+            </div>
           </div>
         </div>
       )}
