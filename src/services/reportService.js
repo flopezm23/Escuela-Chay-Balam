@@ -1,55 +1,70 @@
-// src/services/optionsService.js
 import api, { API_ENDPOINTS } from "./api";
 
-export const optionsService = {
-  // Obtener todos los grados únicos
-  async getGrados() {
+const reportService = {
+  // Reporte por grado y sección
+  async getGradeSectionReport(grado = "", seccion = "") {
     try {
-      // Si tienes un endpoint para grados, úsalo. Si no, podemos extraer de los reportes existentes
-      const response = await api.get(API_ENDPOINTS.GRADOS || "/Grados");
-      return response.data;
+      console.log("Enviando request a GradoSeccion con:", {
+        Grado: grado,
+        Seccion: seccion,
+      });
+      const response = await api.post(API_ENDPOINTS.GRADE_SECTION_REPORT, {
+        Grado: grado,
+        Seccion: seccion,
+      });
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
     } catch (error) {
-      console.warn(
-        "No se pudieron obtener los grados, usando valores por defecto"
+      throw new Error(
+        error.mensaje || "Error al generar reporte de grado y sección"
       );
-      return ["Primero", "Segundo", "Tercero", "Cuarto", "Quinto", "Sexto"];
     }
   },
 
-  // Obtener todas las secciones únicas
-  async getSecciones() {
+  // Reporte por grado, sección y curso
+  async getGradeSectionCourseReport(grado = "", seccion = "", curso = "") {
     try {
-      // Si tienes un endpoint para secciones, úsalo
-      const response = await api.get(API_ENDPOINTS.SECCIONES || "/Secciones");
-      return response.data;
-    } catch (error) {
-      console.warn(
-        "No se pudieron obtener las secciones, usando valores por defecto"
+      console.log("Enviando request a GradoSeccionCurso con:", {
+        Grado: grado,
+        Seccion: seccion,
+        Curso: curso,
+      });
+      const response = await api.post(
+        API_ENDPOINTS.GRADE_SECTION_COURSE_REPORT,
+        {
+          Grado: grado,
+          Seccion: seccion,
+          Curso: curso,
+        }
       );
-      return ["A", "B", "C", "D"];
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
+    } catch (error) {
+      throw new Error(
+        error.mensaje || "Error al generar reporte de grado, sección y curso"
+      );
     }
   },
 
-  // Obtener todos los cursos únicos
-  async getCursos() {
+  // Reporte de profesores por grado, curso y sección
+  async getTeacherAssignmentReport(grado = "", seccion = "") {
     try {
-      // Si tienes un endpoint para cursos, úsalo
-      const response = await api.get(API_ENDPOINTS.CURSOS || "/Cursos");
-      return response.data;
+      console.log("Enviando request a ProfeXGradoCursoSeccion con:", {
+        Grado: grado,
+        Seccion: seccion,
+      });
+      const response = await api.post(API_ENDPOINTS.TEACHER_ASSIGNMENT_REPORT, {
+        Grado: grado,
+        Seccion: seccion,
+      });
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
     } catch (error) {
-      console.warn(
-        "No se pudieron obtener los cursos, usando valores por defecto"
+      throw new Error(
+        error.mensaje || "Error al generar reporte de asignación de profesores"
       );
-      return ["Lengua", "Matemáticas", "Ciencias", "Historia", "Inglés"];
     }
-  },
-
-  // Método alternativo: extraer opciones de los datos existentes
-  extractOptionsFromData(data, fieldName) {
-    if (!Array.isArray(data)) return [];
-    const uniqueValues = [
-      ...new Set(data.map((item) => item[fieldName]).filter(Boolean)),
-    ];
-    return uniqueValues.sort();
   },
 };
+
+export { reportService };
