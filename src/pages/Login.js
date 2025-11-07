@@ -4,6 +4,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import "./Login.css";
 
 // Función de validación de email
+// Función de validación de email CORREGIDA
 const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,8 +14,8 @@ const validateEmail = (email) => {
 
   const domain = email.split("@")[1].toLowerCase();
 
-  // Permitir cualquier subdominio de miumg.edu.gt
-  if (domain.endsWith(".miumg.edu.gt")) {
+  // Permitir el dominio exacto miumg.edu.gt Y cualquier subdominio
+  if (domain === "miumg.edu.gt" || domain.endsWith(".miumg.edu.gt")) {
     return "";
   }
 
