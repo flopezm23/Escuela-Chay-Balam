@@ -57,11 +57,17 @@ const Reports = () => {
       }
 
       console.log("Respuesta completa del reporte:", response);
-      console.log("Datos del reporte:", response?.data);
+      console.log("Tipo de respuesta:", typeof response);
+      console.log("Es array?", Array.isArray(response));
 
-      if (response && response.data) {
+      // La respuesta ES el array directamente
+      if (response && Array.isArray(response)) {
+        setReportData(response);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // Por si acaso alguna vez viene en response.data
         setReportData(response.data);
       } else {
+        console.log("No se encontraron datos en el formato esperado");
         setReportData([]);
       }
     } catch (err) {
@@ -78,7 +84,7 @@ const Reports = () => {
     }));
   };
 
-  // Función exportToCSV corregida
+  // Función exportToCSV
   const exportToCSV = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
       alert("No hay datos para exportar");
@@ -91,39 +97,37 @@ const Reports = () => {
 
     switch (reportType) {
       case "gradoSeccion":
-        headers = ["Estudiante", "Grado", "Sección", "Rol"];
+        headers = ["ID", "Estudiante", "Grado", "Sección", "Rol"];
         rows = reportData.map((item) => [
-          `${item.nombreAlumno || item.nombre || "N/A"} ${
-            item.apellidoAlumno || item.apellido || ""
-          }`,
-          item.nombreGrado || item.grado || "N/A",
-          item.nombreSeccion || item.seccion || "N/A",
-          item.nombreRol || item.rol || "N/A",
+          item.usuarioId || "N/A",
+          `${item.nombreAlumno || "N/A"} ${item.apellidoAlumno || ""}`.trim(),
+          item.nombreGrado || "N/A",
+          item.nombreSeccion || "N/A",
+          item.nombreRol || "N/A",
         ]);
         break;
 
       case "gradoSeccionCurso":
-        headers = ["Estudiante", "Grado", "Sección", "Curso", "Rol"];
+        headers = ["ID", "Estudiante", "Grado", "Sección", "Curso", "Rol"];
         rows = reportData.map((item) => [
-          `${item.nombreAlumno || item.nombre || "N/A"} ${
-            item.apellidoAlumno || item.apellido || ""
-          }`,
-          item.nombreGrado || item.grado || "N/A",
-          item.nombreSeccion || item.seccion || "N/A",
-          item.nombreCurso || item.curso || "N/A",
-          item.nombreRol || item.rol || "N/A",
+          item.usuarioId || "N/A",
+          `${item.nombreAlumno || "N/A"} ${item.apellidoAlumno || ""}`.trim(),
+          item.nombreGrado || "N/A",
+          item.nombreSeccion || "N/A",
+          item.nombreCurso || "N/A",
+          item.nombreRol || "N/A",
         ]);
         break;
 
       case "profesores":
         headers = ["Profesor", "Grado", "Sección", "Curso"];
         rows = reportData.map((item) => [
-          `${item.nombreProfesor || item.nombre || "N/A"} ${
-            item.apellidoProfesor || item.apellido || ""
-          }`,
-          item.nombreGrado || item.grado || "N/A",
-          item.nombreSeccion || item.seccion || "N/A",
-          item.nombreCurso || item.curso || "N/A",
+          `${item.nombreProfesor || item.nombreAlumno || "N/A"} ${
+            item.apellidoProfesor || item.apellidoAlumno || ""
+          }`.trim(),
+          item.nombreGrado || "N/A",
+          item.nombreSeccion || "N/A",
+          item.nombreCurso || "N/A",
         ]);
         break;
 
@@ -157,12 +161,16 @@ const Reports = () => {
       );
     }
 
+    // Debug: mostrar estructura del primer item
+    console.log("Primer item de reportData:", reportData[0]);
+
     switch (reportType) {
       case "gradoSeccion":
         return (
           <table>
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Estudiante</th>
                 <th>Grado</th>
                 <th>Sección</th>
@@ -172,12 +180,15 @@ const Reports = () => {
             <tbody>
               {reportData.map((item, index) => (
                 <tr key={index}>
-                  <td>{`${item.nombreAlumno || item.nombre || "N/A"} ${
-                    item.apellidoAlumno || item.apellido || ""
-                  }`}</td>
-                  <td>{item.nombreGrado || item.grado || "N/A"}</td>
-                  <td>{item.nombreSeccion || item.seccion || "N/A"}</td>
-                  <td>{item.nombreRol || item.rol || "N/A"}</td>
+                  <td>{item.usuarioId || "N/A"}</td>
+                  <td>
+                    {`${item.nombreAlumno || "N/A"} ${
+                      item.apellidoAlumno || ""
+                    }`.trim()}
+                  </td>
+                  <td>{item.nombreGrado || "N/A"}</td>
+                  <td>{item.nombreSeccion || "N/A"}</td>
+                  <td>{item.nombreRol || "N/A"}</td>
                 </tr>
               ))}
             </tbody>
@@ -189,6 +200,7 @@ const Reports = () => {
           <table>
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Estudiante</th>
                 <th>Grado</th>
                 <th>Sección</th>
@@ -199,13 +211,16 @@ const Reports = () => {
             <tbody>
               {reportData.map((item, index) => (
                 <tr key={index}>
-                  <td>{`${item.nombreAlumno || item.nombre || "N/A"} ${
-                    item.apellidoAlumno || item.apellido || ""
-                  }`}</td>
-                  <td>{item.nombreGrado || item.grado || "N/A"}</td>
-                  <td>{item.nombreSeccion || item.seccion || "N/A"}</td>
-                  <td>{item.nombreCurso || item.curso || "N/A"}</td>
-                  <td>{item.nombreRol || item.rol || "N/A"}</td>
+                  <td>{item.usuarioId || "N/A"}</td>
+                  <td>
+                    {`${item.nombreAlumno || "N/A"} ${
+                      item.apellidoAlumno || ""
+                    }`.trim()}
+                  </td>
+                  <td>{item.nombreGrado || "N/A"}</td>
+                  <td>{item.nombreSeccion || "N/A"}</td>
+                  <td>{item.nombreCurso || "N/A"}</td>
+                  <td>{item.nombreRol || "N/A"}</td>
                 </tr>
               ))}
             </tbody>
@@ -226,12 +241,14 @@ const Reports = () => {
             <tbody>
               {reportData.map((item, index) => (
                 <tr key={index}>
-                  <td>{`${item.nombreProfesor || item.nombre || "N/A"} ${
-                    item.apellidoProfesor || item.apellido || ""
-                  }`}</td>
-                  <td>{item.nombreGrado || item.grado || "N/A"}</td>
-                  <td>{item.nombreSeccion || item.seccion || "N/A"}</td>
-                  <td>{item.nombreCurso || item.curso || "N/A"}</td>
+                  <td>
+                    {`${item.nombreProfesor || item.nombreAlumno || "N/A"} ${
+                      item.apellidoProfesor || item.apellidoAlumno || ""
+                    }`.trim()}
+                  </td>
+                  <td>{item.nombreGrado || "N/A"}</td>
+                  <td>{item.nombreSeccion || "N/A"}</td>
+                  <td>{item.nombreCurso || "N/A"}</td>
                 </tr>
               ))}
             </tbody>
@@ -239,7 +256,22 @@ const Reports = () => {
         );
 
       default:
-        return <p>Formato de reporte no reconocido</p>;
+        return (
+          <table>
+            <thead>
+              <tr>
+                <th>Datos (Formato no reconocido)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.map((item, index) => (
+                <tr key={index}>
+                  <td>{JSON.stringify(item)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
     }
   };
 
@@ -254,7 +286,7 @@ const Reports = () => {
             type="text"
             value={filters.grado}
             onChange={(e) => handleFilterChange("grado", e.target.value)}
-            placeholder="Ej: Segundo"
+            placeholder="Ej: Primero, Segundo"
           />
         </div>
         <div className="filter-group">
@@ -263,7 +295,7 @@ const Reports = () => {
             type="text"
             value={filters.seccion}
             onChange={(e) => handleFilterChange("seccion", e.target.value)}
-            placeholder="Ej: A"
+            placeholder="Ej: A, B, C"
           />
         </div>
         {reportType === "gradoSeccionCurso" && (
@@ -273,7 +305,7 @@ const Reports = () => {
               type="text"
               value={filters.curso}
               onChange={(e) => handleFilterChange("curso", e.target.value)}
-              placeholder="Ej: Lengua"
+              placeholder="Ej: Lengua, Matemáticas"
             />
           </div>
         )}
@@ -282,7 +314,7 @@ const Reports = () => {
           className="btn-generate"
           disabled={loading}
         >
-          {loading ? "Generando..." : "Aplicar Filtros"}
+          {loading ? "Generando..." : "Generar Reporte"}
         </button>
       </div>
     </div>
@@ -320,6 +352,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("gradoSeccion");
                 setReportData(null);
+                setFilters({ grado: "", seccion: "", curso: "" });
               }}
               className={`report-btn ${
                 reportType === "gradoSeccion" ? "active" : ""
@@ -331,6 +364,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("gradoSeccionCurso");
                 setReportData(null);
+                setFilters({ grado: "", seccion: "", curso: "" });
               }}
               className={`report-btn ${
                 reportType === "gradoSeccionCurso" ? "active" : ""
@@ -342,6 +376,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("profesores");
                 setReportData(null);
+                setFilters({ grado: "", seccion: "", curso: "" });
               }}
               className={`report-btn ${
                 reportType === "profesores" ? "active" : ""
@@ -387,21 +422,21 @@ const Reports = () => {
         <div className="welcome-message">
           <h3>👋 Bienvenido a los Reportes</h3>
           <p>
-            Selecciona uno de los reportes disponibles para generar la
-            información del sistema.
+            Selecciona un tipo de reporte, ingresa los filtros necesarios y haz
+            clic en "Generar Reporte".
           </p>
           <div className="report-types-info">
             <div className="info-card">
               <h4>📊 Grado y Sección</h4>
-              <p>Calificaciones promedio de todos los estudiantes</p>
+              <p>Lista de estudiantes por grado y sección</p>
             </div>
             <div className="info-card">
               <h4>📚 Grado, Sección y Curso</h4>
-              <p>Detalle de todas las tareas y calificaciones</p>
+              <p>Estudiantes filtrados por grado, sección y curso específico</p>
             </div>
             <div className="info-card">
               <h4>👨‍🏫 Asignación de Profesores</h4>
-              <p>Distribución completa de profesores</p>
+              <p>Distribución de profesores por cursos y secciones</p>
             </div>
           </div>
         </div>

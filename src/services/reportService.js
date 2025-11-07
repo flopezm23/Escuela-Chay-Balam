@@ -1,4 +1,4 @@
-import api, { API_ENDPOINTS } from "./api"; // Asegúrate de que esta línea esté al inicio
+import api, { API_ENDPOINTS } from "./api";
 
 export const reportService = {
   // Reporte por grado y sección
@@ -12,7 +12,8 @@ export const reportService = {
         Grado: grado,
         Seccion: seccion,
       });
-      return response;
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
     } catch (error) {
       throw new Error(
         error.mensaje || "Error al generar reporte de grado y sección"
@@ -36,7 +37,8 @@ export const reportService = {
           Curso: curso,
         }
       );
-      return response;
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
     } catch (error) {
       throw new Error(
         error.mensaje || "Error al generar reporte de grado, sección y curso"
@@ -55,7 +57,8 @@ export const reportService = {
         Grado: grado,
         Seccion: seccion,
       });
-      return response;
+      // La API devuelve el array directamente, no en response.data
+      return Array.isArray(response) ? response : response.data || response;
     } catch (error) {
       throw new Error(
         error.mensaje || "Error al generar reporte de asignación de profesores"
