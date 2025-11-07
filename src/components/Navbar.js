@@ -130,6 +130,15 @@ const Navbar = () => {
           </li>
         )}
 
+        {/* Reportes - Solo Admin y Coordinador */}
+        {(user?.rolID === 1 || user?.rolID === 5) && (
+          <li className="nav-item">
+            <Link to="/reports" className={`nav-link ${isActive("/reports")}`}>
+              <i className="fas fa-chart-bar"></i> Reportes
+            </Link>
+          </li>
+        )}
+
         {/* Información - Todos los usuarios autenticados */}
         <li className="nav-item">
           <Link

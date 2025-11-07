@@ -20,6 +20,7 @@ import MassNotifications from "./pages/MassNotifications";
 import Information from "./pages/Information";
 import UserManagement from "./pages/UserManagement";
 import Profile from "./pages/Profile";
+import Reports from "./pages/Reports";
 import "./App.css";
 
 // Componente simplificado para evitar errores
@@ -123,6 +124,16 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={[1]}>
                 <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={[1, 5]}>
+                {" "}
+                {/* Admin y Coordinador */}
+                <Reports />
               </ProtectedRoute>
             }
           />
