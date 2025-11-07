@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Reports.css";
 import { useAuth } from "../context/AuthContext";
 import { reportService } from "../services/reportService";
+import { optionsService } from "../services/optionsService";
 import { useApi } from "../hooks/useApi";
 
 const Reports = () => {
@@ -15,7 +16,75 @@ const Reports = () => {
     curso: "",
   });
 
+  // Estados para las opciones de los dropdowns
+  const [dropdownOptions, setDropdownOptions] = useState({
+    grados: [],
+    secciones: [],
+    cursos: [],
+  });
+
+  const [availableOptions, setAvailableOptions] = useState({
+    grados: [],
+    secciones: [],
+    cursos: [],
+  });
+
   const canViewReports = user?.rolID === 1 || user?.rolID === 5;
+
+  // Cargar opciones iniciales al montar el componente
+  useEffect(() => {
+    loadInitialOptions();
+  }, []);
+
+  // Cargar opciones disponibles basadas en los datos del reporte
+  useEffect(() => {
+    if (reportData && Array.isArray(reportData)) {
+      extractAvailableOptions();
+    }
+  }, [reportData]);
+
+  const loadInitialOptions = async () => {
+    try {
+      // Cargar opciones por defecto
+      const grados = await optionsService.getGrados();
+      const secciones = await optionsService.getSecciones();
+      const cursos = await optionsService.getCursos();
+
+      setDropdownOptions({
+        grados: [...new Set(grados)].sort(),
+        secciones: [...new Set(secciones)].sort(),
+        cursos: [...new Set(cursos)].sort(),
+      });
+
+      setAvailableOptions({
+        grados: [...new Set(grados)].sort(),
+        secciones: [...new Set(secciones)].sort(),
+        cursos: [...new Set(cursos)].sort(),
+      });
+    } catch (error) {
+      console.error("Error cargando opciones iniciales:", error);
+    }
+  };
+
+  const extractAvailableOptions = () => {
+    if (!reportData || !Array.isArray(reportData)) return;
+
+    const grados = [
+      ...new Set(reportData.map((item) => item.nombreGrado).filter(Boolean)),
+    ].sort();
+    const secciones = [
+      ...new Set(reportData.map((item) => item.nombreSeccion).filter(Boolean)),
+    ].sort();
+    const cursos = [
+      ...new Set(reportData.map((item) => item.nombreCurso).filter(Boolean)),
+    ].sort();
+
+    setAvailableOptions({
+      grados: grados.length > 0 ? grados : dropdownOptions.grados,
+      secciones: secciones.length > 0 ? secciones : dropdownOptions.secciones,
+      cursos: cursos.length > 0 ? cursos : dropdownOptions.cursos,
+    });
+  };
 
   // Función para generar reporte con filtros
   const generateReport = async (type) => {
@@ -57,14 +126,11 @@ const Reports = () => {
       }
 
       console.log("Respuesta completa del reporte:", response);
-      console.log("Tipo de respuesta:", typeof response);
-      console.log("Es array?", Array.isArray(response));
 
       // La respuesta ES el array directamente
       if (response && Array.isArray(response)) {
         setReportData(response);
       } else if (response && response.data && Array.isArray(response.data)) {
-        // Por si acaso alguna vez viene en response.data
         setReportData(response.data);
       } else {
         console.log("No se encontraron datos en el formato esperado");
@@ -84,7 +150,17 @@ const Reports = () => {
     }));
   };
 
-  // Función exportToCSV
+  // Limpiar todos los filtros
+  const clearFilters = () => {
+    setFilters({
+      grado: "",
+      seccion: "",
+      curso: "",
+    });
+    setReportData(null);
+  };
+
+  // Función exportToCSV (mantener igual)
   const exportToCSV = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
       alert("No hay datos para exportar");
@@ -153,16 +229,13 @@ const Reports = () => {
     document.body.removeChild(link);
   };
 
-  // Renderizar tabla basada en los datos reales de la respuesta
+  // Renderizar tabla (mantener igual)
   const renderTable = () => {
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
       return (
         <p className="no-data">No hay datos disponibles para este reporte.</p>
       );
     }
-
-    // Debug: mostrar estructura del primer item
-    console.log("Primer item de reportData:", reportData[0]);
 
     switch (reportType) {
       case "gradoSeccion":
@@ -275,51 +348,80 @@ const Reports = () => {
     }
   };
 
-  // Componente de filtros
+  // Componente de filtros con dropdowns
   const renderFilters = () => (
     <div className="report-filters">
       <h4>Filtros</h4>
       <div className="filter-controls">
         <div className="filter-group">
           <label>Grado:</label>
-          <input
-            type="text"
+          <select
             value={filters.grado}
             onChange={(e) => handleFilterChange("grado", e.target.value)}
-            placeholder="Ej: Primero, Segundo"
-          />
+          >
+            <option value="">Todos los grados</option>
+            {availableOptions.grados.map((grado) => (
+              <option key={grado} value={grado}>
+                {grado}
+              </option>
+            ))}
+          </select>
         </div>
+
         <div className="filter-group">
           <label>Sección:</label>
-          <input
-            type="text"
+          <select
             value={filters.seccion}
             onChange={(e) => handleFilterChange("seccion", e.target.value)}
-            placeholder="Ej: A, B, C"
-          />
+          >
+            <option value="">Todas las secciones</option>
+            {availableOptions.secciones.map((seccion) => (
+              <option key={seccion} value={seccion}>
+                {seccion}
+              </option>
+            ))}
+          </select>
         </div>
+
         {reportType === "gradoSeccionCurso" && (
           <div className="filter-group">
             <label>Curso:</label>
-            <input
-              type="text"
+            <select
               value={filters.curso}
               onChange={(e) => handleFilterChange("curso", e.target.value)}
-              placeholder="Ej: Lengua, Matemáticas"
-            />
+            >
+              <option value="">Todos los cursos</option>
+              {availableOptions.cursos.map((curso) => (
+                <option key={curso} value={curso}>
+                  {curso}
+                </option>
+              ))}
+            </select>
           </div>
         )}
-        <button
-          onClick={() => generateReport(reportType)}
-          className="btn-generate"
-          disabled={loading}
-        >
-          {loading ? "Generando..." : "Generar Reporte"}
-        </button>
+
+        <div className="filter-actions">
+          <button
+            onClick={() => generateReport(reportType)}
+            className="btn-generate"
+            disabled={loading}
+          >
+            {loading ? "Generando..." : "Generar Reporte"}
+          </button>
+
+          <button
+            onClick={clearFilters}
+            className="btn-clear"
+            disabled={loading}
+          >
+            Limpiar Filtros
+          </button>
+        </div>
       </div>
     </div>
   );
 
+  // Resto del componente (mantener igual)...
   if (!canViewReports) {
     return (
       <div className="reports-container">
@@ -352,7 +454,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("gradoSeccion");
                 setReportData(null);
-                setFilters({ grado: "", seccion: "", curso: "" });
+                clearFilters();
               }}
               className={`report-btn ${
                 reportType === "gradoSeccion" ? "active" : ""
@@ -364,7 +466,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("gradoSeccionCurso");
                 setReportData(null);
-                setFilters({ grado: "", seccion: "", curso: "" });
+                clearFilters();
               }}
               className={`report-btn ${
                 reportType === "gradoSeccionCurso" ? "active" : ""
@@ -376,7 +478,7 @@ const Reports = () => {
               onClick={() => {
                 setReportType("profesores");
                 setReportData(null);
-                setFilters({ grado: "", seccion: "", curso: "" });
+                clearFilters();
               }}
               className={`report-btn ${
                 reportType === "profesores" ? "active" : ""
@@ -422,7 +524,7 @@ const Reports = () => {
         <div className="welcome-message">
           <h3>👋 Bienvenido a los Reportes</h3>
           <p>
-            Selecciona un tipo de reporte, ingresa los filtros necesarios y haz
+            Selecciona un tipo de reporte, elige los filtros necesarios y haz
             clic en "Generar Reporte".
           </p>
           <div className="report-types-info">
