@@ -3,12 +3,43 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, Navigate } from "react-router-dom";
 import "./Login.css";
 
+// Función de validación de email
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email)) {
+    return "Formato de correo electrónico inválido";
+  }
+
+  const domain = email.split("@")[1].toLowerCase();
+
+  // Permitir cualquier subdominio de miumg.edu.gt
+  if (domain.endsWith(".miumg.edu.gt")) {
+    return "";
+  }
+
+  // Lista de otros dominios permitidos
+  const ALLOWED_DOMAINS = [
+    "gmail.com",
+    "hotmail.com",
+    "outlook.com",
+    "yahoo.com",
+  ];
+
+  if (!ALLOWED_DOMAINS.includes(domain)) {
+    return `Dominio no permitido. Usa correos de miumg.edu.gt o servicios comunes`;
+  }
+
+  return "";
+};
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   const { login, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -24,12 +55,27 @@ const Login = () => {
       ...formData,
       [name]: value,
     });
+
+    // Validar email en tiempo real
+    if (name === "email") {
+      const validationError = validateEmail(value);
+      setEmailError(validationError);
+    }
+
     setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validar email antes de enviar
+    const emailValidationError = validateEmail(formData.email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+
     console.log("Intentando login con:", formData);
 
     const result = await login(formData.email, formData.password);
@@ -54,6 +100,7 @@ const Login = () => {
 
   const fillDemoCredentials = (email, password) => {
     setFormData({ email, password });
+    setEmailError(""); // Limpiar error al llenar con demo
   };
 
   return (
@@ -74,8 +121,12 @@ const Login = () => {
               onChange={handleInputChange}
               required
               disabled={loading}
-              placeholder="msinaya2@miumg.edu.gt"
+              placeholder="usuario@miumg.edu.gt"
+              className={emailError ? "input-error" : ""}
             />
+            {emailError && (
+              <div className="field-error-message">{emailError}</div>
+            )}
           </div>
 
           <div className="form-group">
@@ -87,7 +138,7 @@ const Login = () => {
               onChange={handleInputChange}
               required
               disabled={loading}
-              placeholder="T2eP+Hge"
+              placeholder="Ingresa tu contraseña"
             />
           </div>
 
@@ -97,7 +148,11 @@ const Login = () => {
             </div>
           )}
 
-          <button type="submit" className="btn-login" disabled={loading}>
+          <button
+            type="submit"
+            className="btn-login"
+            disabled={loading || emailError}
+          >
             {loading ? "Iniciando Sesión..." : "Iniciar Sesión"}
           </button>
         </form>
